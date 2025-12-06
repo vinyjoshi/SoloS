@@ -211,7 +211,9 @@ export default function SoloS() {
             <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center font-bold text-lg shadow-lg shadow-white/5">S</div>
                 <div className="hidden md:block">
-                  <h1 className="font-bold text-lg tracking-tight text-white leading-none">SolOS</h1>
+                  <h1 className="font-bold text-[33px] text-zinc-600 tracking-tight leading-none">
+                    Sol<span className="text-white">OS</span>
+                  </h1>
                   {/* <div className="text-[10px] font-mono text-zinc-500 tracking-wider">VERSION 2.0</div> */}
                 </div>
             </div>
