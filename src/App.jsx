@@ -39,7 +39,13 @@ const googleProvider = new GoogleAuthProvider();
 const appId = 'solos-web'; 
 
 // --- UTILS ---
-const generateDateKey = (date) => date.toISOString().split('T')[0];
+const generateDateKey = (date) => {
+  const d = new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
 const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
 
@@ -106,9 +112,39 @@ const LoginPage = ({ onLogin }) => (
 );
 
 // --- COMPONENT: PRICING MODAL ---
-const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier }) => (
-  createPortal(
-    // UPGRADE: Increased z-index to 9999 to ensure it's above the sidebar (which is z-50)
+const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier }) => {
+  const handleSuccessfulPayment = async (plan, response) => {
+    try {
+      const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+      await setDoc(userRef, { 
+        tier: 'pro', 
+        plan: plan,
+        paymentId: response.razorpay_payment_id,
+        lastPayment: serverTimestamp()
+      }, { merge: true });
+      setUserTier('pro');
+      onClose();
+      
+      // Success toast
+      const toast = document.createElement('div');
+      toast.className = 'fixed top-20 right-6 bg-emerald-500 text-black px-6 py-4 rounded-xl font-bold shadow-2xl z-[10000] animate-in slide-in-from-right duration-300';
+      toast.innerHTML = `
+        <div class="flex items-center gap-3">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          <span>Welcome to SolOS Pro! 🚀</span>
+        </div>
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 5000);
+    } catch (error) {
+      console.error('Error updating tier:', error);
+      alert('Payment successful but failed to update account. Please contact support.');
+    }
+  };
+
+  return createPortal(
     <div 
       className="fixed inset-0 z-[9999] flex items-start md:items-center justify-center px-4 md:px-6 pb-10 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
       style={{ paddingTop: `calc(${headerOffset + 16}px + env(safe-area-inset-top))` }}
@@ -144,29 +180,13 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
               </ul>
           </div>
 
-          {/* Right: Pricing Options */}
+          {/* Right: Pricing Options - NORMALIZED */}
           <div className="p-8 md:p-12 flex flex-col gap-4">
               <h3 className="text-lg font-medium text-white mb-2">Choose your commitment</h3>
               
               {/* Weekly Plan */}
               <button 
-                onClick={() => handlePayment(
-                  user, 
-                  99, // ₹99 for weekly
-                  "Weekly Grind",
-                  async (response) => {
-                     const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
-                     await setDoc(userRef, { 
-                       tier: 'pro', 
-                       plan: 'weekly',
-                       paymentId: response.razorpay_payment_id,
-                       lastPayment: serverTimestamp()
-                     }, { merge: true });
-                     setUserTier('pro');
-                     onClose(); 
-                     alert("Welcome to SolOS Pro! 🚀");
-                  }
-                )}
+                onClick={() => handlePayment(user, 99, "Weekly Grind", (response) => handleSuccessfulPayment('weekly', response))}
                 className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
               >
                   <div>
@@ -179,31 +199,15 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
                   </div>
               </button>
 
-              {/* Monthly Plan - POPULAR */}
+              {/* Monthly Plan - NORMALIZED (Only "Popular" badge, no extra emphasis) */}
               <button 
-                onClick={() => handlePayment(
-                  user, 
-                  499, // ₹499 for monthly
-                  "Monthly Focus",
-                  async (response) => {
-                     const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
-                     await setDoc(userRef, { 
-                       tier: 'pro', 
-                       plan: 'monthly',
-                       paymentId: response.razorpay_payment_id,
-                       lastPayment: serverTimestamp()
-                     }, { merge: true });
-                     setUserTier('pro');
-                     onClose(); 
-                     alert("Welcome to SolOS Pro! 🚀");
-                  }
-                )}
-                className="w-full p-4 rounded-xl border-2 border-emerald-500 bg-emerald-900/10 relative text-left flex justify-between items-center hover:scale-[1.02] transition-transform cursor-pointer group"
+                onClick={() => handlePayment(user, 499, "Monthly Focus", (response) => handleSuccessfulPayment('monthly', response))}
+                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer relative"
               >
                   <div className="absolute -top-3 left-4 px-2 bg-emerald-500 text-black text-[10px] font-bold rounded-full">POPULAR</div>
                   <div>
-                      <div className="font-bold text-white">Monthly Focus</div>
-                      <div className="text-xs text-zinc-400">Standard plan</div>
+                      <div className="font-bold text-white group-hover:text-emerald-400">Monthly Focus</div>
+                      <div className="text-xs text-zinc-500">Standard plan</div>
                   </div>
                   <div className="text-right">
                       <div className="font-mono text-lg font-bold text-white">₹499</div>
@@ -213,23 +217,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
 
               {/* Yearly Plan */}
               <button 
-                onClick={() => handlePayment(
-                  user, 
-                  4999, // ₹4,999 for yearly (saves ~17%)
-                  "Yearly Commit",
-                  async (response) => {
-                     const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
-                     await setDoc(userRef, { 
-                       tier: 'pro', 
-                       plan: 'yearly',
-                       paymentId: response.razorpay_payment_id,
-                       lastPayment: serverTimestamp()
-                     }, { merge: true });
-                     setUserTier('pro');
-                     onClose(); 
-                     alert("Welcome to SolOS Pro for a year! 🎉");
-                  }
-                )}
+                onClick={() => handlePayment(user, 4999, "Yearly Commit", (response) => handleSuccessfulPayment('yearly', response))}
                 className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
               >
                   <div>
@@ -244,23 +232,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
 
               {/* Lifetime Plan */}
               <button 
-                onClick={() => handlePayment(
-                  user, 
-                  9999, // ₹9,999 for lifetime
-                  "Founder Mode",
-                  async (response) => {
-                     const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
-                     await setDoc(userRef, { 
-                       tier: 'pro', 
-                       plan: 'lifetime',
-                       paymentId: response.razorpay_payment_id,
-                       lastPayment: serverTimestamp()
-                     }, { merge: true });
-                     setUserTier('pro');
-                     onClose(); 
-                     alert("Welcome to Founder Mode! Lifetime access unlocked 🔥");
-                  }
-                )}
+                onClick={() => handlePayment(user, 9999, "Founder Mode", (response) => handleSuccessfulPayment('lifetime', response))}
                 className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 transition-all text-left flex justify-between items-center group mt-4 cursor-pointer"
               >
                   <div>
@@ -277,8 +249,9 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
       </div>
     </div>,
     document.body
-  )
-);
+  );
+};
+
 
 // --- COMPONENT: MAIN APP ---
 export default function SoloS() {
@@ -518,11 +491,42 @@ export default function SoloS() {
                       )}
                    </button>
                    {showProfileMenu && (
-                      <div className="absolute top-full right-0 mt-2 w-48 bg-zinc-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
-                          <button onClick={() => { setShowPricing(true); setShowProfileMenu(false); }} className="w-full text-left px-4 py-3 text-xs text-emerald-400 hover:bg-white/5 flex items-center gap-2 transition-colors border-b border-white/5"><DollarSign size={14} /> Upgrade Plan</button>
-                          <button onClick={() => signOut(auth)} className="w-full text-left px-4 py-3 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 transition-colors"><LogOut size={14} /> Log Out</button>
-                      </div>
-                   )}
+                        <div className="absolute top-full right-0 mt-2 w-56 bg-zinc-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
+                        {/* Current Plan Display */}
+                        <div className="px-4 py-3 bg-zinc-800/50 border-b border-white/10">
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Current Plan</div>
+                            <div className="flex items-center gap-2">
+                            {userTier === 'pro' ? (
+                                <>
+                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                <span className="text-sm font-bold text-emerald-400">SolOS Pro</span>
+                                </>
+                            ) : (
+                                <>
+                                <div className="w-2 h-2 rounded-full bg-zinc-600"></div>
+                                <span className="text-sm font-bold text-zinc-400">Free Plan</span>
+                                </>
+                            )}
+                            </div>
+                        </div>
+                        
+                        {/* Menu Actions */}
+                        {userTier === 'free' && (
+                            <button 
+                            onClick={() => { setShowPricing(true); setShowProfileMenu(false); }} 
+                            className="w-full text-left px-4 py-3 text-xs text-emerald-400 hover:bg-white/5 flex items-center gap-2 transition-colors border-b border-white/5"
+                            >
+                            <DollarSign size={14} /> Upgrade to Pro
+                            </button>
+                        )}
+                        <button 
+                            onClick={() => signOut(auth)} 
+                            className="w-full text-left px-4 py-3 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 transition-colors"
+                        >
+                            <LogOut size={14} /> Log Out
+                        </button>
+                    </div>
+                    )}
                 </div>
                 <div className="h-6 w-px bg-white/10 mx-2 hidden md:block"></div>
                 <button onClick={() => setIsMenuOpen(true)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"><Menu size={24} /></button>
