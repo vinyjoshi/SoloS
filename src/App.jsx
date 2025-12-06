@@ -60,10 +60,10 @@ const emptyDayState = {
 const LoginPage = ({ onLogin }) => (
   <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center p-6 text-center">
     <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]">
-      <span className="text-black font-bold text-3xl">S</span>
+      <span className="text-black font-bold text-5xl">S</span>
     </div>
-    <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight">
-      SoloS <span className="text-zinc-600">OS</span>
+    <h1 className="text-4xl md:text-6xl font-bold text-zinc-600 mb-6 tracking-tight">
+      Sol<span className="text-white">OS</span>
     </h1>
     <p className="text-zinc-400 max-w-md mb-12 text-lg leading-relaxed">
       The ruthlessly minimalist operating system for founders. 
@@ -211,8 +211,8 @@ export default function SoloS() {
             <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center font-bold text-lg shadow-lg shadow-white/5">S</div>
                 <div className="hidden md:block">
-                  <h1 className="font-bold text-lg tracking-tight text-white leading-none">SoloS</h1>
-                  <div className="text-[10px] font-mono text-zinc-500 tracking-wider">VERSION 2.0</div>
+                  <h1 className="font-bold text-lg tracking-tight text-white leading-none">SolOS</h1>
+                  {/* <div className="text-[10px] font-mono text-zinc-500 tracking-wider">VERSION 2.0</div> */}
                 </div>
             </div>
             
