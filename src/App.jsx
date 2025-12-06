@@ -301,14 +301,14 @@ export default function SoloS() {
       </main>
 
       <SecondBrainPanel isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} user={user} appId={appId} db={db} />
+      <Analytics />
     </div>
   );
 }
 
-// ... (KEEP ALL THE SUB-COMPONENTS: SecondBrainPanel, DocEditor, CollapsibleSection, etc. EXACTLY AS THEY WERE IN V1.1)
-// ... (I am omitting them here to save space, but you MUST keep them in the file below the main component)
 
-// === RE-PASTE SUB-COMPONENTS HERE ===
+
+// === SUB-COMPONENTS HERE ===
 const SecondBrainPanel = ({ isOpen, onClose, user, appId, db }) => {
   const [docs, setDocs] = useState([]);
   const [selectedDoc, setSelectedDoc] = useState(null); 
