@@ -5,19 +5,18 @@ import {
   Moon, Sun, LogOut, Layout, Shield, Clock, Hash, AlignLeft,
   ChevronDown, ChevronUp, Layers, Menu, X, Folder, FileText,
   Briefcase, Globe, Archive, Save, Tag, Loader2, ArrowRight,
-  FolderInput, RotateCcw, AlertTriangle, Play, Settings
+  FolderInput, RotateCcw, AlertTriangle, Play, Settings, User
 } from 'lucide-react';
 
-// --- 1. CLEAN IMPORTS ---
 import { initializeApp } from 'firebase/app';
 import { 
-  getAuth, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken 
+  getAuth, signOut, onAuthStateChanged, signInWithPopup, GoogleAuthProvider 
 } from 'firebase/auth';
 import { 
   getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs 
 } from 'firebase/firestore';
 
-// --- 2. YOUR REAL FIREBASE CONFIGURATION ---
+// --- CONFIGURATION ---
 const firebaseConfig = {
   apiKey: "AIzaSyByv5ASBuMGUZVEXme6_7xhODcxQkYteAA",
   authDomain: "solos-26e4a.firebaseapp.com",
@@ -28,13 +27,13 @@ const firebaseConfig = {
   measurementId: "G-YYQ5K0RKK8"
 };
 
-// --- 3. INITIALIZE SERVICES ---
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = 'solos-web'; // Updated App ID for the new database path
+const googleProvider = new GoogleAuthProvider();
+const appId = 'solos-web'; 
 
-// --- Utility Functions ---
+// --- UTILS ---
 const generateDateKey = (date) => date.toISOString().split('T')[0];
 const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
 const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
@@ -45,7 +44,6 @@ const getStartOfWeek = (date) => {
   return new Date(d.setDate(diff));
 };
 
-// --- Initial State ---
 const emptyDayState = {
   top3: [
     { text: '', done: false }, 
@@ -58,6 +56,37 @@ const emptyDayState = {
   journal: ''
 };
 
+// --- COMPONENT: LOGIN PAGE ---
+const LoginPage = ({ onLogin }) => (
+  <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center p-6 text-center">
+    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]">
+      <span className="text-black font-bold text-3xl">S</span>
+    </div>
+    <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight">
+      SoloS <span className="text-zinc-600">OS</span>
+    </h1>
+    <p className="text-zinc-400 max-w-md mb-12 text-lg leading-relaxed">
+      The ruthlessly minimalist operating system for founders. 
+      Execution on the left. Strategy on the right.
+    </p>
+    
+    <button 
+      onClick={onLogin}
+      className="group relative flex items-center gap-3 px-8 py-4 bg-white text-black font-bold rounded-full hover:scale-105 transition-all duration-200 active:scale-95"
+    >
+      <svg className="w-5 h-5" viewBox="0 0 24 24">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Sign in with Google
+    </button>
+    <div className="mt-8 text-xs text-zinc-600 font-mono">V2.0 • SECURE • ENCRYPTED</div>
+  </div>
+);
+
+// --- COMPONENT: MAIN APP ---
 export default function SoloS() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -65,19 +94,14 @@ export default function SoloS() {
   const [dayData, setDayData] = useState(emptyDayState);
   const [synced, setSynced] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
-  // v5.0 State
   const [monthlyTotal, setMonthlyTotal] = useState(0);
   const [routineConfig, setRoutineConfig] = useState({ start: 6, end: 23 }); 
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const profileMenuRef = useRef(null);
 
-  // --- Auth & Init ---
+  // Auth Listener
   useEffect(() => {
-    const initAuth = async () => {
-        // Simple anonymous login for the MVP
-        await signInAnonymously(auth);
-    };
-    initAuth();
-    
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
@@ -85,18 +109,26 @@ export default function SoloS() {
     return () => unsubscribe();
   }, []);
 
-  // --- Data Sync (Daily Stack) ---
+  // Close profile menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const dateKey = generateDateKey(currentDate);
 
+  // Data Sync
   useEffect(() => {
     if (!user) return;
-    
-    // 1. Fetch Today's Data
     const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'days', dateKey);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        // Migration logic for old data
         let safeTop3 = data.top3 || emptyDayState.top3;
         if (safeTop3.length > 0 && typeof safeTop3[0] === 'string') {
             safeTop3 = safeTop3.map(text => ({ text, done: false }));
@@ -111,20 +143,15 @@ export default function SoloS() {
     return () => unsubscribe();
   }, [user, dateKey]);
 
-  // --- Monthly Aggregator ---
+  // Monthly Aggregator
   useEffect(() => {
       if (!user) return;
-      
       const fetchMonthlyBurn = async () => {
           const colRef = collection(db, 'artifacts', appId, 'users', user.uid, 'days');
-          
           try {
-             // For MVP: Fetch all and filter in memory. 
-             // In production: Use 'where' queries with a dedicated 'month' field.
              const snapshot = await getDocs(colRef); 
              let total = 0;
-             const currentMonthPrefix = dateKey.substring(0, 7); // "2023-10"
-             
+             const currentMonthPrefix = dateKey.substring(0, 7); 
              snapshot.forEach(doc => {
                  if (doc.id.startsWith(currentMonthPrefix)) {
                      const exps = doc.data().expenses || [];
@@ -132,17 +159,23 @@ export default function SoloS() {
                  }
              });
              setMonthlyTotal(total);
-          } catch (e) {
-              console.error("Monthly calc failed", e);
-          }
+          } catch (e) { console.error(e); }
       };
-      
       fetchMonthlyBurn();
   }, [user, currentDate, dayData.expenses]);
 
-  // --- Actions ---
   const handleLogin = async () => {
-    try { await signInAnonymously(auth); } catch (e) { console.error(e); }
+    try { 
+      await signInWithPopup(auth, googleProvider);
+    } catch (e) { 
+      console.error("Login failed", e);
+      if (e.code === 'auth/unauthorized-domain') {
+        const domain = window.location.hostname;
+        alert(`⚠️ CONFIGURATION ERROR ⚠️\n\nThis domain is not authorized by Firebase.\n\n1. Go to Firebase Console -> Authentication -> Settings -> Authorized Domains\n2. Add this domain: ${domain}`);
+      } else if (e.code !== 'auth/popup-closed-by-user') {
+        alert("Login failed: " + e.message);
+      }
+    }
   };
 
   const saveData = async (newData) => {
@@ -160,120 +193,117 @@ export default function SoloS() {
     saveData({ ...dayData, [field]: value });
   };
 
-  // --- Derived Summaries ---
+  // derived state
   const top3Completed = dayData.top3.filter(t => t.done).length;
-  const top3Summary = (
-      <div className={`text-[10px] font-bold tracking-widest ${top3Completed === 3 ? 'text-emerald-400' : 'text-zinc-500'}`}>
-          [{top3Completed}/3 DONE]
-      </div>
-  );
-
+  const top3Summary = <div className={`text-[10px] font-bold tracking-widest ${top3Completed === 3 ? 'text-emerald-400' : 'text-zinc-500'}`}>[{top3Completed}/3 DONE]</div>;
   const dailyBurn = dayData.expenses.reduce((acc, curr) => acc + curr.amount, 0);
-  const burnSummary = (
-      <div className="flex gap-2 text-[10px] font-mono text-zinc-500">
-          <span>DAY: <span className="text-zinc-300">${dailyBurn.toFixed(0)}</span></span>
-          <span className="text-zinc-700">|</span>
-          <span>MO: <span className="text-zinc-300">${monthlyTotal.toFixed(0)}</span></span>
-      </div>
-  );
+  const burnSummary = <div className="flex gap-2 text-[10px] font-mono text-zinc-500"><span>DAY: <span className="text-zinc-300">${dailyBurn.toFixed(0)}</span></span><span className="text-zinc-700">|</span><span>MO: <span className="text-zinc-300">${monthlyTotal.toFixed(0)}</span></span></div>;
 
-  // --- Render Logic ---
-  if (loading) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-500 font-mono">INITIALIZING...</div>;
+  if (loading) return <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-zinc-500 font-mono animate-pulse">BOOTING KERNEL...</div>;
 
-  if (!user) return <LandingPage onLogin={handleLogin} />;
+  if (!user) return <LoginPage onLogin={handleLogin} />;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans selection:bg-white/20 overflow-x-hidden">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-[#09090b] to-black text-zinc-300 font-sans selection:bg-emerald-500/30 overflow-x-hidden">
       
-      {/* App Header */}
-      <header className="border-b border-white/5 flex justify-center items-center sticky top-0 z-20 bg-zinc-950/80 backdrop-blur-md">
+      <header className="border-b border-white/5 flex justify-center items-center sticky top-0 z-20 bg-[#09090b]/80 backdrop-blur-md">
         <div className="w-full max-w-5xl px-4 md:px-6 py-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white text-black rounded flex items-center justify-center font-bold text-lg">S</div>
+                <div className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center font-bold text-lg shadow-lg shadow-white/5">S</div>
                 <div className="hidden md:block">
-                <h1 className="font-bold text-lg tracking-tight text-white leading-none">SoloS</h1>
-                <div className="text-[10px] font-mono text-zinc-500 tracking-wider">VERSION 1.1</div>
+                  <h1 className="font-bold text-lg tracking-tight text-white leading-none">SoloS</h1>
+                  <div className="text-[10px] font-mono text-zinc-500 tracking-wider">VERSION 2.0</div>
                 </div>
             </div>
             
-            <div className="flex items-center gap-6">
-            <div className="hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-zinc-500 uppercase">
-                <div className={`w-1.5 h-1.5 rounded-full ${synced ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></div>
-                {synced ? 'Synced' : 'Saving'}
-            </div>
-            
-            <button onClick={() => signOut(auth)} className="text-zinc-400 hover:text-white transition-colors" title="Logout">
-                <LogOut size={20} />
-            </button>
+            <div className="flex items-center gap-4 md:gap-6">
+                <div className="hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-zinc-500 uppercase">
+                    <div className={`w-1.5 h-1.5 rounded-full ${synced ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></div>
+                    {synced ? 'Synced' : 'Saving'}
+                </div>
+                
+                {/* User Profile / Logout */}
+                <div className="flex items-center gap-3 pl-4 border-l border-white/10 relative" ref={profileMenuRef}>
+                   <div className="hidden md:block text-right">
+                      <div className="text-xs font-medium text-white">{user.displayName}</div>
+                      <div className="text-[9px] text-zinc-500">{user.email}</div>
+                   </div>
+                   <button 
+                      onClick={() => setShowProfileMenu(!showProfileMenu)} 
+                      className="relative group focus:outline-none"
+                   >
+                      {user.photoURL && !imageError ? (
+                        <img 
+                          src={user.photoURL} 
+                          alt="Profile" 
+                          referrerPolicy="no-referrer"
+                          onError={() => setImageError(true)}
+                          className="w-8 h-8 rounded-full border border-white/10 group-hover:border-white/30 transition-colors object-cover" 
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors">
+                           <User size={14} />
+                        </div>
+                      )}
+                   </button>
 
-            <div className="h-6 w-px bg-white/10 mx-2"></div>
-            
-            {/* Second Brain Trigger */}
-            <button 
-                onClick={() => setIsMenuOpen(true)}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"
-            >
-                <Menu size={24} />
-            </button>
+                   {/* Profile Dropdown */}
+                   {showProfileMenu && (
+                      <div className="absolute top-full right-0 mt-2 w-48 bg-zinc-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
+                          <div className="px-4 py-3 border-b border-white/5 md:hidden">
+                            <div className="text-xs font-medium text-white">{user.displayName}</div>
+                            <div className="text-[10px] text-zinc-500 truncate">{user.email}</div>
+                          </div>
+                          <button 
+                            onClick={() => signOut(auth)} 
+                            className="w-full text-left px-4 py-3 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 transition-colors"
+                          >
+                            <LogOut size={14} /> Log Out
+                          </button>
+                      </div>
+                   )}
+                </div>
+
+                <div className="h-6 w-px bg-white/10 mx-2 hidden md:block"></div>
+                
+                <button 
+                    onClick={() => setIsMenuOpen(true)}
+                    className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"
+                >
+                    <Menu size={24} />
+                </button>
             </div>
         </div>
       </header>
 
-      {/* Main Single Column Stack */}
       <main className={`p-4 md:p-6 max-w-5xl mx-auto space-y-6 pb-20 transition-all duration-300 ${isMenuOpen ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
-        
         <TimelineWidget currentDate={currentDate} setCurrentDate={setCurrentDate} />
-
         <CollapsibleSection title="Brain Dump (Inbox)" icon={Brain} defaultOpen={true}>
-            <TextWidget 
-                value={dayData.brainDump}
-                onChange={(val) => updateField('brainDump', val)}
-                placeholder="Capture phase. Dump raw thoughts here. Refactor into Docs later." 
-                minHeight="h-48"
-            />
+            <TextWidget value={dayData.brainDump} onChange={(val) => updateField('brainDump', val)} placeholder="Capture phase. Dump raw thoughts here. Refactor into Docs later." minHeight="h-48"/>
         </CollapsibleSection>
-
         <CollapsibleSection title="Top Priorities" icon={Target} defaultOpen={true} summary={top3Summary}>
              <Top3Widget top3={dayData.top3} onUpdate={(val) => updateField('top3', val)} />
         </CollapsibleSection>
-
         <CollapsibleSection title="Routine" icon={Clock} defaultOpen={false}>
-            <RoutineWidget 
-                schedule={dayData.schedule} 
-                onUpdate={(val) => updateField('schedule', val)} 
-                config={routineConfig}
-                setConfig={setRoutineConfig}
-            />
+            <RoutineWidget schedule={dayData.schedule} onUpdate={(val) => updateField('schedule', val)} config={routineConfig} setConfig={setRoutineConfig}/>
         </CollapsibleSection>
-
         <CollapsibleSection title="Burn Rate" icon={DollarSign} defaultOpen={false} summary={burnSummary}>
              <ExpenseWidget expenses={dayData.expenses} onUpdate={(val) => updateField('expenses', val)} />
         </CollapsibleSection>
-
         <CollapsibleSection title="Reflection" icon={BookOpen} defaultOpen={false}>
-             <TextWidget 
-                value={dayData.journal}
-                onChange={(val) => updateField('journal', val)}
-                placeholder="Distill today's lessons." 
-                minHeight="h-48"
-             />
+             <TextWidget value={dayData.journal} onChange={(val) => updateField('journal', val)} placeholder="Distill today's lessons." minHeight="h-48"/>
         </CollapsibleSection>
       </main>
 
-      {/* Second Brain Slide-over */}
-      <SecondBrainPanel 
-        isOpen={isMenuOpen} 
-        onClose={() => setIsMenuOpen(false)} 
-        user={user}
-        appId={appId}
-        db={db}
-      />
+      <SecondBrainPanel isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} user={user} appId={appId} db={db} />
     </div>
   );
 }
 
-// --- SECOND BRAIN COMPONENTS ---
+// ... (KEEP ALL THE SUB-COMPONENTS: SecondBrainPanel, DocEditor, CollapsibleSection, etc. EXACTLY AS THEY WERE IN V1.1)
+// ... (I am omitting them here to save space, but you MUST keep them in the file below the main component)
 
+// === RE-PASTE SUB-COMPONENTS HERE ===
 const SecondBrainPanel = ({ isOpen, onClose, user, appId, db }) => {
   const [docs, setDocs] = useState([]);
   const [selectedDoc, setSelectedDoc] = useState(null); 
@@ -360,7 +390,6 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db }) => {
               ${movingDocId === doc.id ? 'bg-zinc-800 border-zinc-600' : 'hover:bg-zinc-800 hover:border-white/10'}
             `}
           >
-            {/* Main Row */}
             <div className="flex items-center justify-between p-1">
                 <button 
                     type="button"
@@ -431,7 +460,6 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db }) => {
                 </div>
             </div>
 
-            {/* Inline Move Menu */}
             {movingDocId === doc.id && (
                 <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-2 animate-in slide-in-from-top-2">
                     {['projects','areas','resources','archives'].map(cat => (
@@ -913,7 +941,7 @@ const LandingPage = ({ onLogin }) => (
       <button onClick={onLogin} className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Log In</button>
     </nav>
 
-    <div className="max-w-5xl mx-auto px-6 py-32 text-center">
+    <div className="max-w-3xl mx-auto px-6 py-32 text-center">
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-zinc-400 mb-8">
         <span className="w-2 h-2 rounded-full bg-emerald-500"></span> V1.1 SYSTEM ONLINE
       </div>
