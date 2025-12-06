@@ -60,14 +60,14 @@ const emptyDayState = {
 const LoginPage = ({ onLogin }) => (
   <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center p-6 text-center">
     <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]">
-      <span className="text-black font-bold text-5xl">S</span>
+      <img src="/SolOS.png" alt="SolOS Logo" className="w-full h-full object-cover"/>
     </div>
     <h1 className="text-4xl md:text-6xl font-bold text-zinc-600 mb-6 tracking-tight">
       Sol<span className="text-white">OS</span>
     </h1>
     <p className="text-zinc-400 max-w-md mb-12 text-lg leading-relaxed">
-      The ruthlessly minimalist operating system for founders. 
-      Execution on the left. Strategy on the right.
+      The ruthlessly minimalist OS for founders. 
+      Capture your thoughts, prioritize your day, track expenses, and reflect — all in one place.
     </p>
     
     <button 
@@ -82,7 +82,7 @@ const LoginPage = ({ onLogin }) => (
       </svg>
       Sign in with Google
     </button>
-    <div className="mt-8 text-xs text-zinc-600 font-mono">V2.0 • SECURE • ENCRYPTED</div>
+    <div className="mt-8 text-xs text-zinc-600 font-mono">SECURE • ENCRYPTED • FOR YOU</div>
   </div>
 );
 
@@ -637,7 +637,7 @@ const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = false, 
 };
 
 const TimelineWidget = ({ currentDate, setCurrentDate }) => {
-  const [view, setView] = useState('weekly'); 
+  const [view, setView] = useState('daily');// daily, weekly, monthly
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
