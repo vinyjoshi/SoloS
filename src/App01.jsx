@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-// REMOVED: import { Analytics } from "@vercel/analytics/react" 
+import { Analytics } from "@vercel/analytics/react"
 import { 
   CheckCircle, Circle, Trash2, Plus, DollarSign, Brain, BookOpen, 
   Calendar as CalendarIcon, Target, ChevronLeft, ChevronRight, 
@@ -18,9 +17,6 @@ import {
   getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs 
 } from 'firebase/firestore';
 
-// --- PAYMENT UTILITY ---
-import { handlePayment } from '../utils/payment';
-
 // --- CONFIGURATION ---
 const firebaseConfig = {
   apiKey: "AIzaSyByv5ASBuMGUZVEXme6_7xhODcxQkYteAA",
@@ -37,6 +33,24 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 const appId = 'solos-web'; 
+
+// --- FREEMIUM LIMITS ---
+const TIER_LIMITS = {
+  free: {
+    projects: 5,
+    areas: 5,
+    resources: 20,
+    archives: Infinity, // Unlimited
+    history: 'current_week' // Only see this week
+  },
+  pro: {
+    projects: Infinity,
+    areas: Infinity,
+    resources: Infinity,
+    archives: Infinity,
+    history: 'unlimited'
+  }
+};
 
 // --- UTILS ---
 const generateDateKey = (date) => {
@@ -62,17 +76,15 @@ const getStartOfCurrentWeek = () => {
 const getStartOfWeek = (date) => {
   const d = new Date(date);
   const day = d.getDay();
-  const diff = d.getDate() - day; 
+  const diff = d.getDate() - day; // adjust when day is sunday
+  // Simple fix for Sunday start vs Monday start preference - defaulting to Sunday start for timeline view consistency
   return new Date(d.setDate(diff));
 };
 
 const emptyDayState = {
-  // Updated to 5 items
   top3: [
     { text: '', done: false }, 
     { text: '', done: false }, 
-    { text: '', done: false },
-    { text: '', done: false },
     { text: '', done: false }
   ],
   schedule: {},
@@ -91,8 +103,8 @@ const LoginPage = ({ onLogin }) => (
       Sol<span className="text-white">OS</span>
     </h1>
     <p className="text-zinc-400 max-w-md mb-12 text-lg leading-relaxed">
-      The ruthlessly minimalist operating system for founders. 
-      Execution on the left. Strategy on the right.
+      The ruthlessly minimalist OS for founders. 
+      Capture your thoughts, prioritize your day, track expenses, and reflect — all in one place.
     </p>
     
     <button 
@@ -107,151 +119,89 @@ const LoginPage = ({ onLogin }) => (
       </svg>
       Sign in with Google
     </button>
-    <div className="mt-8 text-xs text-zinc-600 font-mono">V2.4 • SECURE • ENCRYPTED</div>
+    <div className="mt-8 text-xs text-zinc-600 font-mono">V2.2 • SECURE • ENCRYPTED</div>
   </div>
 );
 
 // --- COMPONENT: PRICING MODAL ---
-const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier }) => {
-  const handleSuccessfulPayment = async (plan, response) => {
-    try {
-      const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
-      await setDoc(userRef, { 
-        tier: 'pro', 
-        plan: plan,
-        paymentId: response.razorpay_payment_id,
-        lastPayment: serverTimestamp()
-      }, { merge: true });
-      setUserTier('pro');
-      onClose();
+const PricingModal = ({ onClose }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="bg-[#09090b] border border-white/10 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl relative">
+      <button onClick={onClose} className="absolute top-4 right-4 p-2 text-zinc-500 hover:text-white transition-colors z-10">
+        <X size={20} />
+      </button>
       
-      // Success toast
-      const toast = document.createElement('div');
-      toast.className = 'fixed top-20 right-6 bg-emerald-500 text-black px-6 py-4 rounded-xl font-bold shadow-2xl z-[10000] animate-in slide-in-from-right duration-300';
-      toast.innerHTML = `
-        <div class="flex items-center gap-3">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-          </svg>
-          <span>Welcome to SolOS Pro! 🚀</span>
+      <div className="grid md:grid-cols-2">
+        {/* Left: Value Prop */}
+        <div className="p-8 md:p-12 bg-zinc-900 flex flex-col justify-center">
+            <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-900/20">
+                <Shield className="text-black" size={24} />
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-4">Unlock Your Potential.</h2>
+            <p className="text-zinc-400 mb-8 leading-relaxed">
+                SoloS Free is designed for starters. SoloS Pro is designed for finishers. 
+                Unlock unlimited history, unlimited projects, and secure your focus.
+            </p>
+            <ul className="space-y-3 text-sm text-zinc-300">
+                <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500"/> Unlimited History</li>
+                <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500"/> Unlimited Projects & Areas</li>
+                <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500"/> Priority Support</li>
+            </ul>
         </div>
-      `;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 5000);
-    } catch (error) {
-      console.error('Error updating tier:', error);
-      alert('Payment successful but failed to update account. Please contact support.');
-    }
-  };
 
-  return createPortal(
-    <div 
-      className="fixed inset-0 z-[9999] flex items-start md:items-center justify-center px-4 md:px-6 pb-10 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
-      style={{ paddingTop: `calc(${headerOffset + 16}px + env(safe-area-inset-top))` }}
-      onClick={onClose}
-    >
-      <div 
-        className="bg-[#09090b] border border-white/10 rounded-2xl w-full max-w-3xl shadow-2xl relative overflow-hidden"
-        style={{ maxHeight: `calc(100vh - ${headerOffset + 32}px)` }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sticky top-0 left-0 right-0 bg-[#09090b]/95 backdrop-blur z-20 flex justify-end px-3 py-3 md:px-4 md:py-4">
-          <button onClick={onClose} className="p-2 text-zinc-500 hover:text-white hover:bg-white/10 rounded-full transition-colors">
-            <X size={20} />
-          </button>
-        </div>
-        <div 
-          className="grid md:grid-cols-2 overflow-y-auto"
-          style={{ maxHeight: `calc(100vh - ${headerOffset + 96}px)` }}
-        >
-          {/* Left: Value Prop */}
-          <div className="p-8 md:p-12 bg-zinc-900 flex flex-col justify-center">
-              <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-900/20">
-                  <Shield className="text-black" size={24} />
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-4">Unlock Your Potential.</h2>
-              <p className="text-zinc-400 mb-8 leading-relaxed">
-                  SolOS Free is designed for starters. SolOS Pro is designed for finishers. 
-              </p>
-              <ul className="space-y-3 text-sm text-zinc-300">
-                  <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500"/> Unlimited History</li>
-                  <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500"/> Unlimited Projects & Areas</li>
-                  <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500"/> Priority Support</li>
-              </ul>
-          </div>
+        {/* Right: Pricing Options */}
+        <div className="p-8 md:p-12 flex flex-col gap-4">
+            <h3 className="text-lg font-medium text-white mb-2">Choose your commitment</h3>
+            
+            <button className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group">
+                <div>
+                    <div className="font-bold text-white group-hover:text-emerald-400">Weekly Grind</div>
+                    <div className="text-xs text-zinc-500">Perfect for sprints</div>
+                </div>
+                <div className="text-right">
+                    <div className="font-mono text-lg font-bold text-white">$1.50</div>
+                    <div className="text-[10px] text-zinc-500">/ week</div>
+                </div>
+            </button>
 
-          {/* Right: Pricing Options - NORMALIZED */}
-          <div className="p-8 md:p-12 flex flex-col gap-4">
-              <h3 className="text-lg font-medium text-white mb-2">Choose your commitment</h3>
-              
-              {/* Weekly Plan */}
-              <button 
-                onClick={() => handlePayment(user, 99, "Weekly Grind", (response) => handleSuccessfulPayment('weekly', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
-              >
-                  <div>
-                      <div className="font-bold text-white group-hover:text-emerald-400">Weekly Grind</div>
-                      <div className="text-xs text-zinc-500">Perfect for sprints</div>
-                  </div>
-                  <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹99</div>
-                      <div className="text-[10px] text-zinc-500">/ week</div>
-                  </div>
-              </button>
+            <button className="w-full p-4 rounded-xl border-2 border-emerald-500 bg-emerald-900/10 relative text-left flex justify-between items-center">
+                <div className="absolute -top-3 left-4 px-2 bg-emerald-500 text-black text-[10px] font-bold rounded-full">POPULAR</div>
+                <div>
+                    <div className="font-bold text-white">Monthly Focus</div>
+                    <div className="text-xs text-zinc-400">Standard plan</div>
+                </div>
+                <div className="text-right">
+                    <div className="font-mono text-lg font-bold text-white">$5.00</div>
+                    <div className="text-[10px] text-zinc-500">/ month</div>
+                </div>
+            </button>
 
-              {/* Monthly Plan - NORMALIZED (Only "Popular" badge, no extra emphasis) */}
-              <button 
-                onClick={() => handlePayment(user, 499, "Monthly Focus", (response) => handleSuccessfulPayment('monthly', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer relative"
-              >
-                  <div className="absolute -top-3 left-4 px-2 bg-emerald-500 text-black text-[10px] font-bold rounded-full">POPULAR</div>
-                  <div>
-                      <div className="font-bold text-white group-hover:text-emerald-400">Monthly Focus</div>
-                      <div className="text-xs text-zinc-500">Standard plan</div>
-                  </div>
-                  <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹499</div>
-                      <div className="text-[10px] text-zinc-500">/ month</div>
-                  </div>
-              </button>
+            <button className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group">
+                <div>
+                    <div className="font-bold text-white group-hover:text-emerald-400">Yearly Commit</div>
+                    <div className="text-xs text-zinc-500">Save 16%</div>
+                </div>
+                <div className="text-right">
+                    <div className="font-mono text-lg font-bold text-white">$50.00</div>
+                    <div className="text-[10px] text-zinc-500">/ year</div>
+                </div>
+            </button>
 
-              {/* Yearly Plan */}
-              <button 
-                onClick={() => handlePayment(user, 4999, "Yearly Commit", (response) => handleSuccessfulPayment('yearly', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
-              >
-                  <div>
-                      <div className="font-bold text-white group-hover:text-emerald-400">Yearly Commit</div>
-                      <div className="text-xs text-zinc-500">Save 17%</div>
-                  </div>
-                  <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹4,999</div>
-                      <div className="text-[10px] text-zinc-500">/ year</div>
-                  </div>
-              </button>
-
-              {/* Lifetime Plan */}
-              <button 
-                onClick={() => handlePayment(user, 9999, "Founder Mode", (response) => handleSuccessfulPayment('lifetime', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 transition-all text-left flex justify-between items-center group mt-4 cursor-pointer"
-              >
-                  <div>
-                      <div className="font-bold text-white group-hover:text-purple-400">Founder Mode</div>
-                      <div className="text-xs text-zinc-500">One-time payment</div>
-                  </div>
-                  <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹9,999</div>
-                      <div className="text-[10px] text-zinc-500">lifetime</div>
-                  </div>
-              </button>
-          </div>
+            <button className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 transition-all text-left flex justify-between items-center group mt-4">
+                <div>
+                    <div className="font-bold text-white group-hover:text-purple-400">Founder Mode</div>
+                    <div className="text-xs text-zinc-500">One-time payment</div>
+                </div>
+                <div className="text-right">
+                    <div className="font-mono text-lg font-bold text-white">$99.00</div>
+                    <div className="text-[10px] text-zinc-500">lifetime</div>
+                </div>
+            </button>
         </div>
       </div>
-    </div>,
-    document.body
-  );
-};
-
+    </div>
+  </div>
+);
 
 // --- COMPONENT: MAIN APP ---
 export default function SoloS() {
@@ -267,54 +217,16 @@ export default function SoloS() {
   const [imageError, setImageError] = useState(false);
   const [showPricing, setShowPricing] = useState(false); // Paywall State
   const [userTier, setUserTier] = useState('free'); // 'free' or 'pro'
-  const [headerHeight, setHeaderHeight] = useState(80);
 
   const profileMenuRef = useRef(null);
-  const headerRef = useRef(null);
-
-  // Ensure pricing modal always sits on top and locks background scroll
-  useEffect(() => {
-    if (showPricing) {
-      setIsMenuOpen(false);
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [showPricing]);
 
   // Auth Listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
-      if (u) {
-        // Check for User Tier in Firestore
-        const userRef = doc(db, 'artifacts', appId, 'users', u.uid, 'settings', 'profile');
-        const unsubscribeProfile = onSnapshot(userRef, (doc) => {
-            if (doc.exists() && doc.data().tier) {
-                setUserTier(doc.data().tier);
-            }
-        });
-        setLoading(false);
-        return () => unsubscribeProfile();
-      } else {
-        setLoading(false);
-      }
+      setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
-
-  // Measure header height to offset modal below it (especially on mobile)
-  useEffect(() => {
-    const measure = () => {
-      if (headerRef.current) {
-        const rect = headerRef.current.getBoundingClientRect();
-        setHeaderHeight(rect.height || 80);
-      }
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
   }, []);
 
   // Close profile menu on outside click
@@ -333,9 +245,11 @@ export default function SoloS() {
   // --- GATEKEEPER LOGIC ---
   const isDateLocked = () => {
       if (userTier === 'pro') return false;
+      
       const startOfWeek = getStartOfCurrentWeek();
       const checkDate = new Date(currentDate);
       checkDate.setHours(0,0,0,0);
+      
       // If date is before this week's Monday, LOCK IT.
       return checkDate < startOfWeek;
   };
@@ -346,6 +260,7 @@ export default function SoloS() {
   useEffect(() => {
     if (!user) return;
     
+    // If locked, don't fetch data, just reset state (or keep empty)
     if (isLocked) {
         setDayData(emptyDayState);
         return;
@@ -356,21 +271,8 @@ export default function SoloS() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         let safeTop3 = data.top3 || emptyDayState.top3;
-        
-        // Ensure we always have 5 items if migrating from older data
-        if (safeTop3.length < 5) {
-            const missing = 5 - safeTop3.length;
-            for(let i=0; i<missing; i++) safeTop3.push({ text: '', done: false });
-        }
-
-        // Migration logic for string -> object
         if (safeTop3.length > 0 && typeof safeTop3[0] === 'string') {
             safeTop3 = safeTop3.map(text => ({ text, done: false }));
-             // Ensure 5 items after map
-             if (safeTop3.length < 5) {
-                const missing = 5 - safeTop3.length;
-                for(let i=0; i<missing; i++) safeTop3.push({ text: '', done: false });
-             }
         }
         setDayData({ ...emptyDayState, ...data, top3: safeTop3 });
       } else {
@@ -410,7 +312,7 @@ export default function SoloS() {
       console.error("Login failed", e);
       if (e.code === 'auth/unauthorized-domain') {
         const domain = window.location.hostname;
-        alert(`⚠️ CONFIGURATION ERROR ⚠️\n\nDomain not authorized.\nAdd ${domain} to Firebase Console -> Auth -> Settings -> Authorized Domains`);
+        alert(`⚠️ DOMAIN NOT AUTHORIZED ⚠️\n\nGo to Firebase Console -> Authentication -> Settings -> Authorized Domains.\n\nAdd this domain: ${domain}`);
       } else if (e.code !== 'auth/popup-closed-by-user') {
         alert(`Login error: ${e.message}`);
       }
@@ -435,7 +337,7 @@ export default function SoloS() {
 
   // derived state
   const top3Completed = dayData.top3.filter(t => t.done).length;
-  const top3Summary = <div className={`text-[10px] font-bold tracking-widest ${top3Completed === 5 ? 'text-emerald-400' : 'text-zinc-500'}`}>[{top3Completed}/5 DONE]</div>;
+  const top3Summary = <div className={`text-[10px] font-bold tracking-widest ${top3Completed === 3 ? 'text-emerald-400' : 'text-zinc-500'}`}>[{top3Completed}/3 DONE]</div>;
   const dailyBurn = dayData.expenses.reduce((acc, curr) => acc + curr.amount, 0);
   const burnSummary = <div className="flex gap-2 text-[10px] font-mono text-zinc-500"><span>DAY: <span className="text-zinc-300">${dailyBurn.toFixed(0)}</span></span><span className="text-zinc-700">|</span><span>MO: <span className="text-zinc-300">${monthlyTotal.toFixed(0)}</span></span></div>;
 
@@ -446,19 +348,9 @@ export default function SoloS() {
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-[#09090b] to-black text-zinc-300 font-sans selection:bg-emerald-500/30 overflow-x-hidden">
       
-      {/* FIX: Z-Index 9999 ensures it sits above everything, including the side panel (z-50) */}
-      {showPricing && (
-        <PricingModal 
-            onClose={() => setShowPricing(false)} 
-            headerOffset={headerHeight}
-            user={user}
-            db={db}
-            appId={appId}
-            setUserTier={setUserTier}
-        />
-      )}
+      {showPricing && <PricingModal onClose={() => setShowPricing(false)} />}
 
-      <header ref={headerRef} className="border-b border-white/5 flex justify-center items-center sticky top-0 z-20 bg-[#09090b]/80 backdrop-blur-md">
+      <header className="border-b border-white/5 flex justify-center items-center sticky top-0 z-20 bg-[#09090b]/80 backdrop-blur-md">
         <div className="w-full max-w-5xl px-4 md:px-6 py-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center font-bold text-lg shadow-lg shadow-white/5">
@@ -483,53 +375,52 @@ export default function SoloS() {
                       <div className="text-xs font-medium text-white">{user.displayName}</div>
                       <div className="text-[9px] text-zinc-500">{user.email}</div>
                    </div>
-                   <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="relative group focus:outline-none">
+                   <button 
+                      onClick={() => setShowProfileMenu(!showProfileMenu)} 
+                      className="relative group focus:outline-none"
+                   >
                       {user.photoURL && !imageError ? (
-                        <img src={user.photoURL} alt="Profile" referrerPolicy="no-referrer" onError={() => setImageError(true)} className="w-8 h-8 rounded-full border border-white/10 group-hover:border-white/30 transition-colors object-cover" />
+                        <img 
+                          src={user.photoURL} 
+                          alt="Profile" 
+                          referrerPolicy="no-referrer"
+                          onError={() => setImageError(true)}
+                          className="w-8 h-8 rounded-full border border-white/10 group-hover:border-white/30 transition-colors object-cover" 
+                        />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors"><User size={14} /></div>
+                        <div className="w-8 h-8 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors">
+                           <User size={14} />
+                        </div>
                       )}
                    </button>
+
+                   {/* Profile Dropdown */}
                    {showProfileMenu && (
-                        <div className="absolute top-full right-0 mt-2 w-56 bg-zinc-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
-                        {/* Current Plan Display */}
-                        <div className="px-4 py-3 bg-zinc-800/50 border-b border-white/10">
-                            <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Current Plan</div>
-                            <div className="flex items-center gap-2">
-                            {userTier === 'pro' ? (
-                                <>
-                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                <span className="text-sm font-bold text-emerald-400">SolOS Pro</span>
-                                </>
-                            ) : (
-                                <>
-                                <div className="w-2 h-2 rounded-full bg-zinc-600"></div>
-                                <span className="text-sm font-bold text-zinc-400">Free Plan</span>
-                                </>
-                            )}
-                            </div>
-                        </div>
-                        
-                        {/* Menu Actions */}
-                        {userTier === 'free' && (
-                            <button 
-                            onClick={() => { setShowPricing(true); setShowProfileMenu(false); }} 
+                      <div className="absolute top-full right-0 mt-2 w-48 bg-zinc-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
+                          <button 
+                            onClick={() => { setShowPricing(true); setShowProfileMenu(false); }}
                             className="w-full text-left px-4 py-3 text-xs text-emerald-400 hover:bg-white/5 flex items-center gap-2 transition-colors border-b border-white/5"
-                            >
-                            <DollarSign size={14} /> Upgrade to Pro
-                            </button>
-                        )}
-                        <button 
+                          >
+                            <DollarSign size={14} /> Upgrade Plan
+                          </button>
+                          <button 
                             onClick={() => signOut(auth)} 
                             className="w-full text-left px-4 py-3 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 transition-colors"
-                        >
+                          >
                             <LogOut size={14} /> Log Out
-                        </button>
-                    </div>
-                    )}
+                          </button>
+                      </div>
+                   )}
                 </div>
+
                 <div className="h-6 w-px bg-white/10 mx-2 hidden md:block"></div>
-                <button onClick={() => setIsMenuOpen(true)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"><Menu size={24} /></button>
+                
+                <button 
+                    onClick={() => setIsMenuOpen(true)}
+                    className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"
+                >
+                    <Menu size={24} />
+                </button>
             </div>
         </div>
       </header>
@@ -543,7 +434,9 @@ export default function SoloS() {
                 <Lock size={48} className="text-zinc-600 mb-4 z-10 group-hover:text-emerald-500 transition-colors" />
                 <h3 className="text-xl font-bold text-white z-10">History Locked</h3>
                 <p className="text-zinc-500 text-sm mt-2 z-10">Upgrade to Pro to access past data.</p>
-                <button className="mt-6 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-full text-sm transition-colors z-10">Unlock History</button>
+                <button className="mt-6 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-full text-sm transition-colors z-10">
+                    Unlock History
+                </button>
             </div>
         ) : (
             <>
@@ -567,7 +460,7 @@ export default function SoloS() {
       </main>
 
       <SecondBrainPanel isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} user={user} appId={appId} db={db} setShowPricing={setShowPricing} userTier={userTier} />
-      {/* REMOVED: Analytics component since package is not installed */}
+      <Analytics />
     </div>
   );
 }
@@ -577,18 +470,8 @@ export default function SoloS() {
 const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, userTier }) => {
   const [docs, setDocs] = useState([]);
   const [selectedDoc, setSelectedDoc] = useState(null); 
-  const [openMenuId, setOpenMenuId] = useState(null); 
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setOpenMenuId(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const [movingDocId, setMovingDocId] = useState(null); 
+  const [confirmActionId, setConfirmActionId] = useState(null); 
 
   useEffect(() => {
     if (!user || !isOpen) return;
@@ -605,6 +488,7 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
     if (userTier === 'free') {
         const count = docs.filter(d => d.category === category).length;
         const limits = { projects: 5, areas: 5, resources: 20 };
+        // Archives usually unlimited
         if (limits[category] && count >= limits[category]) {
             setShowPricing(true);
             return;
@@ -630,33 +514,37 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
             category: newCategory, 
             updatedAt: serverTimestamp() 
         });
-        setOpenMenuId(null); 
+        setMovingDocId(null); 
      } catch (e) { console.error(e); }
   };
 
-  const handleDeleteDoc = async (docId) => {
-    if (window.confirm('Delete this document forever?')) {
-      try {
-        await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId));
-        setOpenMenuId(null);
-      } catch (err) { console.error("Error removing document: ", err); }
-    }
-  };
-
-  const handleRestore = async (docId) => {
-      try {
-        const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId);
-        await updateDoc(docRef, { category: 'projects', updatedAt: serverTimestamp() });
-        setOpenMenuId(null);
-      } catch (err) { console.error(err); }
-  };
-
-  const handleSoftDelete = async (docId) => {
+  const handleSoftDelete = async (docId, e) => {
+    e.stopPropagation();
     try {
       const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId);
       await updateDoc(docRef, { category: 'trash', updatedAt: serverTimestamp() });
-      setOpenMenuId(null);
     } catch (err) { console.error(err); }
+  };
+
+  const handleHardDelete = async (docId, e) => {
+    e.stopPropagation();
+    if (confirmActionId === docId) {
+        try {
+            await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId));
+        } catch (err) { console.error(err); }
+        setConfirmActionId(null);
+    } else {
+        setConfirmActionId(docId);
+        setTimeout(() => setConfirmActionId(null), 3000);
+    }
+  };
+
+  const handleRestore = async (docId, e) => {
+      e.stopPropagation();
+      try {
+        const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId);
+        await updateDoc(docRef, { category: 'projects', updatedAt: serverTimestamp() });
+      } catch (err) { console.error(err); }
   };
 
   const renderDocList = (category) => {
@@ -671,83 +559,103 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
         {categoryDocs.map(doc => (
           <div 
             key={doc.id}
-            // REMOVED overflow-hidden to allow dropdowns to pop out
-            className="relative w-full flex items-center justify-between bg-zinc-800/30 border border-white/5 rounded-lg hover:bg-zinc-800 hover:border-white/10 transition-all text-left group"
+            className={`
+              relative w-full bg-zinc-800/30 border border-white/5 rounded-lg overflow-hidden transition-all duration-300
+              ${movingDocId === doc.id ? 'bg-zinc-800 border-zinc-600' : 'hover:bg-zinc-800 hover:border-white/10'}
+            `}
           >
-            {/* Main Click Area */}
-            <button 
-                type="button"
-                onClick={() => setSelectedDoc(doc)}
-                className="flex-1 min-w-0 p-3 text-left z-0"
-            >
-              <div className={`text-sm font-medium truncate ${category === 'trash' ? 'text-zinc-500 line-through' : 'text-zinc-300 group-hover:text-white'}`}>{doc.title || "Untitled"}</div>
-              <div className="flex items-center gap-2 mt-1">
-                 {doc.tags && doc.tags.length > 0 && (
-                    <div className="flex gap-1">
-                      {doc.tags.map((tag, i) => (
-                        <span key={i} className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono">{tag}</span>
-                      ))}
-                    </div>
-                 )}
-                 <div className="text-[9px] text-zinc-600 font-mono">
-                    {doc.updatedAt?.toDate ? doc.updatedAt.toDate().toLocaleDateString() : 'Just now'}
-                 </div>
-              </div>
-            </button>
-
-            {/* 3-Dot Menu Trigger */}
-            <div className="relative pr-2">
+            {/* Main Row */}
+            <div className="flex items-center justify-between p-1">
                 <button 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId(openMenuId === doc.id ? null : doc.id);
-                    }}
-                    className="p-2 text-zinc-500 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                    type="button"
+                    onClick={() => setSelectedDoc(doc)}
+                    className="flex-1 min-w-0 p-3 text-left z-0"
                 >
-                    <MoreVertical size={16} />
+                  <div className={`text-sm font-medium truncate ${category === 'trash' ? 'text-zinc-500 line-through' : 'text-zinc-300 group-hover:text-white'}`}>{doc.title || "Untitled"}</div>
+                  <div className="flex items-center gap-2 mt-1">
+                     {doc.tags && doc.tags.length > 0 && (
+                        <div className="flex gap-1">
+                          {doc.tags.map((tag, i) => (
+                            <span key={i} className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono">{tag}</span>
+                          ))}
+                        </div>
+                     )}
+                     <div className="text-[9px] text-zinc-600 font-mono">
+                        {doc.updatedAt?.toDate ? doc.updatedAt.toDate().toLocaleDateString() : 'Just now'}
+                     </div>
+                  </div>
                 </button>
 
-                {/* Dropdown Menu */}
-                {openMenuId === doc.id && (
-                    <div 
-                        ref={menuRef}
-                        className="absolute right-0 top-8 w-48 bg-[#18181b] border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
-                    >
-                        {category === 'trash' ? (
-                            <>
-                                <button onClick={(e) => { e.stopPropagation(); handleRestore(doc.id); }} className="w-full text-left px-4 py-2.5 text-xs text-emerald-400 hover:bg-white/5 flex items-center gap-2">
-                                    <RotateCcw size={14} /> Restore
-                                </button>
-                                <button onClick={(e) => { e.stopPropagation(); handleDeleteDoc(doc.id); }} className="w-full text-left px-4 py-2.5 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 border-t border-white/5">
-                                    <Trash2 size={14} /> Delete Permanently
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                {['projects','areas','resources','archives'].map(cat => (
-                                    cat !== category && (
-                                        <button key={cat} onClick={(e) => { e.stopPropagation(); handleMoveDoc(doc.id, cat); }} className="w-full text-left px-4 py-2.5 text-xs text-zinc-300 hover:bg-white/5 hover:text-white flex items-center gap-2 capitalize">
-                                            <FolderInput size={14} /> Move to {cat}
-                                        </button>
-                                    )
-                                ))}
-                                <button onClick={(e) => { e.stopPropagation(); handleSoftDelete(doc.id); }} className="w-full text-left px-4 py-2.5 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 border-t border-white/5">
-                                    <Trash2 size={14} /> Move to Trash
-                                </button>
-                            </>
-                        )}
-                    </div>
-                )}
+                <div className="flex items-center pr-2 gap-1">
+                    {category === 'trash' ? (
+                        <>
+                            <button 
+                                type="button"
+                                onClick={(e) => handleRestore(doc.id, e)} 
+                                className="p-2 text-emerald-500 hover:bg-emerald-500/10 rounded transition-colors"
+                                title="Restore"
+                            >
+                                <RotateCcw size={16} />
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={(e) => handleHardDelete(doc.id, e)} 
+                                className={`
+                                    flex items-center justify-center transition-all duration-200 rounded
+                                    ${confirmActionId === doc.id ? 'w-20 bg-red-600 text-white' : 'w-8 p-2 text-red-500 hover:bg-red-500/10'}
+                                `}
+                                title="Delete Permanently"
+                            >
+                                {confirmActionId === doc.id ? <span className="text-[10px] font-bold">CONFIRM</span> : <Trash2 size={16} />}
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button 
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMovingDocId(movingDocId === doc.id ? null : doc.id);
+                                }}
+                                className={`p-2 rounded transition-colors ${movingDocId === doc.id ? 'text-emerald-400 bg-emerald-500/10' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
+                                title="Move"
+                            >
+                                <FolderInput size={16} />
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={(e) => handleSoftDelete(doc.id, e)} 
+                                className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                title="Move to Trash"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
+
+            {/* Inline Move Menu */}
+            {movingDocId === doc.id && (
+                <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-2 animate-in slide-in-from-top-2">
+                    {['projects','areas','resources','archives'].map(cat => (
+                        cat !== category && (
+                            <button key={cat} onClick={() => handleMoveDoc(doc.id, cat)} className="text-xs bg-black/40 hover:bg-zinc-700 text-zinc-400 hover:text-white py-2 rounded border border-white/5 capitalize">
+                                {cat}
+                            </button>
+                        )
+                    ))}
+                </div>
+            )}
           </div>
         ))}
         {category !== 'archives' && category !== 'trash' && (
             <button 
                 type="button"
                 onClick={() => handleCreateDoc(category)}
-                className="w-full py-2.5 mt-2 text-xs font-medium text-zinc-500 hover:text-zinc-300 border border-dashed border-zinc-800 hover:border-zinc-600 rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2 mt-2 text-xs font-medium text-zinc-500 hover:text-white border border-dashed border-zinc-800 hover:border-zinc-600 rounded-lg transition-colors flex items-center justify-center gap-1"
             >
-                <Plus size={14} /> Add {category.slice(0, -1)}
+                <Plus size={12} /> Add {category.slice(0, -1)}
             </button>
         )}
       </div>
@@ -755,22 +663,19 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
   };
 
   return (
-    <div className={`fixed inset-y-0 right-0 w-full md:w-[600px] bg-[#09090b] border-l border-white/10 shadow-2xl transform transition-transform duration-300 z-50 flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+    <div className={`fixed inset-y-0 right-0 w-full md:w-[600px] bg-zinc-900 border-l border-white/10 shadow-2xl transform transition-transform duration-300 z-50 flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
       
-      {/* Header */}
-      <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#09090b] flex-shrink-0">
-        <div className="flex items-center gap-3">
-           <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/10">
-             <Layers className="text-white" size={18} />
-           </div>
-           <span className="font-bold text-white tracking-tight text-lg">Second Brain</span>
+      <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-zinc-900 flex-shrink-0">
+        <div className="flex items-center gap-2">
+           <Layers className="text-white" size={20} />
+           <span className="font-bold text-white tracking-tight">Second Brain</span>
         </div>
         <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-zinc-400 hover:text-white transition-colors">
           <X size={20} />
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#09090b]">
+      <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950">
         {selectedDoc ? (
           <DocEditor docData={selectedDoc} onBack={() => setSelectedDoc(null)} user={user} appId={appId} db={db} />
         ) : (
@@ -1214,7 +1119,7 @@ const LandingPage = ({ onLogin }) => (
 
     <div className="max-w-3xl mx-auto px-6 py-32 text-center">
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-zinc-400 mb-8">
-        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> V2.4 SYSTEM ONLINE
+        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> V2.2 SYSTEM ONLINE
       </div>
       <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-8 bg-gradient-to-b from-white to-zinc-600 bg-clip-text text-transparent">
         Execution + Strategy.
