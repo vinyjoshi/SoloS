@@ -209,7 +209,9 @@ export default function SoloS() {
       <header className="border-b border-white/5 flex justify-center items-center sticky top-0 z-20 bg-[#09090b]/80 backdrop-blur-md">
         <div className="w-full max-w-5xl px-4 md:px-6 py-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center font-bold text-lg shadow-lg shadow-white/5">S</div>
+                <div className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center font-bold text-lg shadow-lg shadow-white/5">
+                <img src="/SolOS.png" alt="SolOS Logo" className="w-full h-full object-cover"/>
+                </div>
                 <div className="hidden md:block">
                   <h1 className="font-bold text-[33px] text-zinc-600 tracking-tight leading-none">
                     Sol<span className="text-white">OS</span>
