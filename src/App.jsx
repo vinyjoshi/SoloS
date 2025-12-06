@@ -1,0 +1,940 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  CheckCircle, Circle, Trash2, Plus, DollarSign, Brain, BookOpen, 
+  Calendar as CalendarIcon, Target, ChevronLeft, ChevronRight, 
+  Moon, Sun, LogOut, Layout, Shield, Clock, Hash, AlignLeft,
+  ChevronDown, ChevronUp, Layers, Menu, X, Folder, FileText,
+  Briefcase, Globe, Archive, Save, Tag, Loader2, ArrowRight,
+  FolderInput, RotateCcw, AlertTriangle, Play, Settings
+} from 'lucide-react';
+
+// --- 1. CLEAN IMPORTS ---
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken 
+} from 'firebase/auth';
+import { 
+  getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs 
+} from 'firebase/firestore';
+
+// --- 2. YOUR REAL FIREBASE CONFIGURATION ---
+const firebaseConfig = {
+  apiKey: "AIzaSyByv5ASBuMGUZVEXme6_7xhODcxQkYteAA",
+  authDomain: "solos-26e4a.firebaseapp.com",
+  projectId: "solos-26e4a",
+  storageBucket: "solos-26e4a.firebasestorage.app",
+  messagingSenderId: "872913065542",
+  appId: "1:872913065542:web:c2abaf02de01eb8dc01c47",
+  measurementId: "G-YYQ5K0RKK8"
+};
+
+// --- 3. INITIALIZE SERVICES ---
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = 'solos-web'; // Updated App ID for the new database path
+
+// --- Utility Functions ---
+const generateDateKey = (date) => date.toISOString().split('T')[0];
+const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
+const getStartOfWeek = (date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day;
+  return new Date(d.setDate(diff));
+};
+
+// --- Initial State ---
+const emptyDayState = {
+  top3: [
+    { text: '', done: false }, 
+    { text: '', done: false }, 
+    { text: '', done: false }
+  ],
+  schedule: {},
+  expenses: [], 
+  brainDump: '',
+  journal: ''
+};
+
+export default function SoloS() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [dayData, setDayData] = useState(emptyDayState);
+  const [synced, setSynced] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  // v5.0 State
+  const [monthlyTotal, setMonthlyTotal] = useState(0);
+  const [routineConfig, setRoutineConfig] = useState({ start: 6, end: 23 }); 
+
+  // --- Auth & Init ---
+  useEffect(() => {
+    const initAuth = async () => {
+        // Simple anonymous login for the MVP
+        await signInAnonymously(auth);
+    };
+    initAuth();
+    
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // --- Data Sync (Daily Stack) ---
+  const dateKey = generateDateKey(currentDate);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    // 1. Fetch Today's Data
+    const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'days', dateKey);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        // Migration logic for old data
+        let safeTop3 = data.top3 || emptyDayState.top3;
+        if (safeTop3.length > 0 && typeof safeTop3[0] === 'string') {
+            safeTop3 = safeTop3.map(text => ({ text, done: false }));
+        }
+        setDayData({ ...emptyDayState, ...data, top3: safeTop3 });
+      } else {
+        setDayData(emptyDayState);
+      }
+      setSynced(true);
+    }, (error) => console.error("Sync error:", error));
+
+    return () => unsubscribe();
+  }, [user, dateKey]);
+
+  // --- Monthly Aggregator ---
+  useEffect(() => {
+      if (!user) return;
+      
+      const fetchMonthlyBurn = async () => {
+          const colRef = collection(db, 'artifacts', appId, 'users', user.uid, 'days');
+          
+          try {
+             // For MVP: Fetch all and filter in memory. 
+             // In production: Use 'where' queries with a dedicated 'month' field.
+             const snapshot = await getDocs(colRef); 
+             let total = 0;
+             const currentMonthPrefix = dateKey.substring(0, 7); // "2023-10"
+             
+             snapshot.forEach(doc => {
+                 if (doc.id.startsWith(currentMonthPrefix)) {
+                     const exps = doc.data().expenses || [];
+                     total += exps.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+                 }
+             });
+             setMonthlyTotal(total);
+          } catch (e) {
+              console.error("Monthly calc failed", e);
+          }
+      };
+      
+      fetchMonthlyBurn();
+  }, [user, currentDate, dayData.expenses]);
+
+  // --- Actions ---
+  const handleLogin = async () => {
+    try { await signInAnonymously(auth); } catch (e) { console.error(e); }
+  };
+
+  const saveData = async (newData) => {
+    setDayData(newData);
+    setSynced(false);
+    if (!user) return;
+    try {
+      const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'days', dateKey);
+      await setDoc(docRef, newData);
+      setSynced(true);
+    } catch (e) { console.error("Save failed", e); }
+  };
+
+  const updateField = (field, value) => {
+    saveData({ ...dayData, [field]: value });
+  };
+
+  // --- Derived Summaries ---
+  const top3Completed = dayData.top3.filter(t => t.done).length;
+  const top3Summary = (
+      <div className={`text-[10px] font-bold tracking-widest ${top3Completed === 3 ? 'text-emerald-400' : 'text-zinc-500'}`}>
+          [{top3Completed}/3 DONE]
+      </div>
+  );
+
+  const dailyBurn = dayData.expenses.reduce((acc, curr) => acc + curr.amount, 0);
+  const burnSummary = (
+      <div className="flex gap-2 text-[10px] font-mono text-zinc-500">
+          <span>DAY: <span className="text-zinc-300">${dailyBurn.toFixed(0)}</span></span>
+          <span className="text-zinc-700">|</span>
+          <span>MO: <span className="text-zinc-300">${monthlyTotal.toFixed(0)}</span></span>
+      </div>
+  );
+
+  // --- Render Logic ---
+  if (loading) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-500 font-mono">INITIALIZING...</div>;
+
+  if (!user) return <LandingPage onLogin={handleLogin} />;
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans selection:bg-white/20 overflow-x-hidden">
+      
+      {/* App Header */}
+      <header className="border-b border-white/5 flex justify-center items-center sticky top-0 z-20 bg-zinc-950/80 backdrop-blur-md">
+        <div className="w-full max-w-5xl px-4 md:px-6 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-white text-black rounded flex items-center justify-center font-bold text-lg">S</div>
+                <div className="hidden md:block">
+                <h1 className="font-bold text-lg tracking-tight text-white leading-none">SoloS</h1>
+                <div className="text-[10px] font-mono text-zinc-500 tracking-wider">VERSION 1.1</div>
+                </div>
+            </div>
+            
+            <div className="flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-zinc-500 uppercase">
+                <div className={`w-1.5 h-1.5 rounded-full ${synced ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></div>
+                {synced ? 'Synced' : 'Saving'}
+            </div>
+            
+            <button onClick={() => signOut(auth)} className="text-zinc-400 hover:text-white transition-colors" title="Logout">
+                <LogOut size={20} />
+            </button>
+
+            <div className="h-6 w-px bg-white/10 mx-2"></div>
+            
+            {/* Second Brain Trigger */}
+            <button 
+                onClick={() => setIsMenuOpen(true)}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"
+            >
+                <Menu size={24} />
+            </button>
+            </div>
+        </div>
+      </header>
+
+      {/* Main Single Column Stack */}
+      <main className={`p-4 md:p-6 max-w-5xl mx-auto space-y-6 pb-20 transition-all duration-300 ${isMenuOpen ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+        
+        <TimelineWidget currentDate={currentDate} setCurrentDate={setCurrentDate} />
+
+        <CollapsibleSection title="Brain Dump (Inbox)" icon={Brain} defaultOpen={true}>
+            <TextWidget 
+                value={dayData.brainDump}
+                onChange={(val) => updateField('brainDump', val)}
+                placeholder="Capture phase. Dump raw thoughts here. Refactor into Docs later." 
+                minHeight="h-48"
+            />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Top Priorities" icon={Target} defaultOpen={true} summary={top3Summary}>
+             <Top3Widget top3={dayData.top3} onUpdate={(val) => updateField('top3', val)} />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Routine" icon={Clock} defaultOpen={false}>
+            <RoutineWidget 
+                schedule={dayData.schedule} 
+                onUpdate={(val) => updateField('schedule', val)} 
+                config={routineConfig}
+                setConfig={setRoutineConfig}
+            />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Burn Rate" icon={DollarSign} defaultOpen={false} summary={burnSummary}>
+             <ExpenseWidget expenses={dayData.expenses} onUpdate={(val) => updateField('expenses', val)} />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Reflection" icon={BookOpen} defaultOpen={false}>
+             <TextWidget 
+                value={dayData.journal}
+                onChange={(val) => updateField('journal', val)}
+                placeholder="Distill today's lessons." 
+                minHeight="h-48"
+             />
+        </CollapsibleSection>
+      </main>
+
+      {/* Second Brain Slide-over */}
+      <SecondBrainPanel 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)} 
+        user={user}
+        appId={appId}
+        db={db}
+      />
+    </div>
+  );
+}
+
+// --- SECOND BRAIN COMPONENTS ---
+
+const SecondBrainPanel = ({ isOpen, onClose, user, appId, db }) => {
+  const [docs, setDocs] = useState([]);
+  const [selectedDoc, setSelectedDoc] = useState(null); 
+  const [movingDocId, setMovingDocId] = useState(null); 
+  const [confirmActionId, setConfirmActionId] = useState(null); 
+
+  useEffect(() => {
+    if (!user || !isOpen) return;
+    const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'docs'), orderBy('updatedAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setDocs(docsData);
+    });
+    return () => unsubscribe();
+  }, [user, isOpen, appId, db]);
+
+  const handleCreateDoc = async (category) => {
+    const newDoc = {
+      title: 'Untitled Document',
+      body: '',
+      category: category,
+      tags: [],
+      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp()
+    };
+    const docRef = await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'docs'), newDoc);
+    setSelectedDoc({ id: docRef.id, ...newDoc }); 
+  };
+
+  const handleMoveDoc = async (docId, newCategory) => {
+     try {
+        const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId);
+        await updateDoc(docRef, { 
+            category: newCategory, 
+            updatedAt: serverTimestamp() 
+        });
+        setMovingDocId(null); 
+     } catch (e) { console.error(e); }
+  };
+
+  const handleSoftDelete = async (docId, e) => {
+    e.stopPropagation();
+    try {
+      const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId);
+      await updateDoc(docRef, { category: 'trash', updatedAt: serverTimestamp() });
+    } catch (err) { console.error(err); }
+  };
+
+  const handleHardDelete = async (docId, e) => {
+    e.stopPropagation();
+    if (confirmActionId === docId) {
+        try {
+            await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId));
+        } catch (err) { console.error(err); }
+        setConfirmActionId(null);
+    } else {
+        setConfirmActionId(docId);
+        setTimeout(() => setConfirmActionId(null), 3000);
+    }
+  };
+
+  const handleRestore = async (docId, e) => {
+      e.stopPropagation();
+      try {
+        const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId);
+        await updateDoc(docRef, { category: 'projects', updatedAt: serverTimestamp() });
+      } catch (err) { console.error(err); }
+  };
+
+  const renderDocList = (category) => {
+    const categoryDocs = docs.filter(d => d.category === category);
+    return (
+      <div className="space-y-2 mt-2 pb-2">
+        {categoryDocs.length === 0 && (
+          <div className="text-center py-4 text-xs text-zinc-600 border border-dashed border-white/5 rounded-lg">
+            No items in {category}.
+          </div>
+        )}
+        {categoryDocs.map(doc => (
+          <div 
+            key={doc.id}
+            className={`
+              relative w-full bg-zinc-800/30 border border-white/5 rounded-lg overflow-hidden transition-all duration-300
+              ${movingDocId === doc.id ? 'bg-zinc-800 border-zinc-600' : 'hover:bg-zinc-800 hover:border-white/10'}
+            `}
+          >
+            {/* Main Row */}
+            <div className="flex items-center justify-between p-1">
+                <button 
+                    type="button"
+                    onClick={() => setSelectedDoc(doc)}
+                    className="flex-1 min-w-0 p-3 text-left z-0"
+                >
+                  <div className={`text-sm font-medium truncate ${category === 'trash' ? 'text-zinc-500 line-through' : 'text-zinc-300 group-hover:text-white'}`}>{doc.title || "Untitled"}</div>
+                  <div className="flex items-center gap-2 mt-1">
+                     {doc.tags && doc.tags.length > 0 && (
+                        <div className="flex gap-1">
+                          {doc.tags.map((tag, i) => (
+                            <span key={i} className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono">{tag}</span>
+                          ))}
+                        </div>
+                     )}
+                     <div className="text-[9px] text-zinc-600 font-mono">
+                        {doc.updatedAt?.toDate ? doc.updatedAt.toDate().toLocaleDateString() : 'Just now'}
+                     </div>
+                  </div>
+                </button>
+
+                <div className="flex items-center pr-2 gap-1">
+                    {category === 'trash' ? (
+                        <>
+                            <button 
+                                type="button"
+                                onClick={(e) => handleRestore(doc.id, e)} 
+                                className="p-2 text-emerald-500 hover:bg-emerald-500/10 rounded transition-colors"
+                                title="Restore"
+                            >
+                                <RotateCcw size={16} />
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={(e) => handleHardDelete(doc.id, e)} 
+                                className={`
+                                    flex items-center justify-center transition-all duration-200 rounded
+                                    ${confirmActionId === doc.id ? 'w-20 bg-red-600 text-white' : 'w-8 p-2 text-red-500 hover:bg-red-500/10'}
+                                `}
+                                title="Delete Permanently"
+                            >
+                                {confirmActionId === doc.id ? <span className="text-[10px] font-bold">CONFIRM</span> : <Trash2 size={16} />}
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button 
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMovingDocId(movingDocId === doc.id ? null : doc.id);
+                                }}
+                                className={`p-2 rounded transition-colors ${movingDocId === doc.id ? 'text-emerald-400 bg-emerald-500/10' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
+                                title="Move"
+                            >
+                                <FolderInput size={16} />
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={(e) => handleSoftDelete(doc.id, e)} 
+                                className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                title="Move to Trash"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* Inline Move Menu */}
+            {movingDocId === doc.id && (
+                <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-2 animate-in slide-in-from-top-2">
+                    {['projects','areas','resources','archives'].map(cat => (
+                        cat !== category && (
+                            <button key={cat} onClick={() => handleMoveDoc(doc.id, cat)} className="text-xs bg-black/40 hover:bg-zinc-700 text-zinc-400 hover:text-white py-2 rounded border border-white/5 capitalize">
+                                {cat}
+                            </button>
+                        )
+                    ))}
+                </div>
+            )}
+          </div>
+        ))}
+        {category !== 'archives' && category !== 'trash' && (
+            <button 
+                type="button"
+                onClick={() => handleCreateDoc(category)}
+                className="w-full py-2 mt-2 text-xs font-medium text-zinc-500 hover:text-white border border-dashed border-zinc-800 hover:border-zinc-600 rounded-lg transition-colors flex items-center justify-center gap-1"
+            >
+                <Plus size={12} /> Add {category.slice(0, -1)}
+            </button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className={`fixed inset-y-0 right-0 w-full md:w-[600px] bg-zinc-900 border-l border-white/10 shadow-2xl transform transition-transform duration-300 z-50 flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      
+      <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-zinc-900 flex-shrink-0">
+        <div className="flex items-center gap-2">
+           <Layers className="text-white" size={20} />
+           <span className="font-bold text-white tracking-tight">Second Brain</span>
+        </div>
+        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-zinc-400 hover:text-white transition-colors">
+          <X size={20} />
+        </button>
+      </div>
+
+      <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950">
+        {selectedDoc ? (
+          <DocEditor docData={selectedDoc} onBack={() => setSelectedDoc(null)} user={user} appId={appId} db={db} />
+        ) : (
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+            <CollapsibleSection title="Projects" icon={Briefcase} defaultOpen={true}>{renderDocList('projects')}</CollapsibleSection>
+            <CollapsibleSection title="Areas" icon={Layout} defaultOpen={false}>{renderDocList('areas')}</CollapsibleSection>
+            <CollapsibleSection title="Resources" icon={Globe} defaultOpen={false}>{renderDocList('resources')}</CollapsibleSection>
+            <CollapsibleSection title="Archives" icon={Archive} defaultOpen={false}>{renderDocList('archives')}</CollapsibleSection>
+            <div className="mt-8 pt-4 border-t border-white/5">
+                <CollapsibleSection title="Trash" icon={Trash2} defaultOpen={false}>{renderDocList('trash')}</CollapsibleSection>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const DocEditor = ({ docData, onBack, user, appId, db }) => {
+  const [title, setTitle] = useState(docData.title);
+  const [body, setBody] = useState(docData.body);
+  const [category, setCategory] = useState(docData.category);
+  const [tags, setTags] = useState(docData.tags ? docData.tags.join(', ') : '');
+  const [saving, setSaving] = useState(false);
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+    const docTags = docData.tags || [];
+    
+    if (title === docData.title && body === docData.body && category === docData.category && JSON.stringify(tagsArray) === JSON.stringify(docTags)) return;
+
+    setSaving(true);
+    timeoutRef.current = setTimeout(async () => {
+      const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docData.id);
+      await updateDoc(docRef, { title, body, category, tags: tagsArray, updatedAt: serverTimestamp() });
+      setSaving(false);
+    }, 1000); 
+
+    return () => clearTimeout(timeoutRef.current);
+  }, [title, body, tags, category, appId, db, user.uid, docData]);
+
+  const handleSoftDelete = async () => {
+    try {
+        const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docData.id);
+        await updateDoc(docRef, { category: 'trash' });
+        onBack();
+    } catch(e) { console.error(e); }
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-zinc-950">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-zinc-900 flex-shrink-0">
+        <button onClick={onBack} className="flex items-center gap-1 text-zinc-400 hover:text-white text-sm">
+          <ChevronLeft size={16} /> Back
+        </button>
+        <div className="flex items-center gap-4">
+             <div className="text-[10px] font-mono text-zinc-500 uppercase">{saving ? 'Saving...' : 'Saved'}</div>
+             <select 
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="bg-zinc-800 text-xs text-zinc-300 border border-white/10 rounded px-2 py-1 outline-none focus:border-white/30"
+             >
+                 <option value="projects">Projects</option>
+                 <option value="areas">Areas</option>
+                 <option value="resources">Resources</option>
+                 <option value="archives">Archives</option>
+                 <option value="trash">Trash</option>
+             </select>
+             <button onClick={handleSoftDelete} className="text-zinc-600 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        <input 
+          type="text" 
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Untitled Document"
+          className="w-full bg-transparent text-2xl font-bold text-white placeholder-zinc-700 border-none outline-none mb-4"
+        />
+        <div className="flex items-center gap-2 mb-6">
+            <Tag size={14} className="text-zinc-500" />
+            <input 
+              type="text" 
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="Add tags (e.g. Health, Q1 Goal)..."
+              className="flex-1 bg-transparent text-xs text-emerald-400 placeholder-zinc-700 border-none outline-none font-mono"
+            />
+        </div>
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Start typing..."
+          className="w-full h-[calc(100%-150px)] bg-transparent text-sm leading-relaxed text-zinc-300 placeholder-zinc-800 border-none outline-none resize-none"
+        />
+      </div>
+    </div>
+  );
+};
+
+// --- SHARED WIDGETS ---
+
+const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = false, summary }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="bg-zinc-900/30 border border-white/5 rounded-xl overflow-hidden backdrop-blur-sm transition-all duration-300">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <Icon size={18} className="text-zinc-400" />
+          <span className="font-medium text-zinc-200 text-sm tracking-wide">{title}</span>
+        </div>
+        <div className="flex items-center gap-3">
+            {!isOpen && summary}
+            {isOpen ? <ChevronUp size={16} className="text-zinc-500"/> : <ChevronDown size={16} className="text-zinc-500"/>}
+        </div>
+      </button>
+      
+      {isOpen && (
+        <div className="border-t border-white/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TimelineWidget = ({ currentDate, setCurrentDate }) => {
+  const [view, setView] = useState('weekly'); 
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const changeDate = (days) => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + days);
+    setCurrentDate(newDate);
+  };
+
+  const renderContent = () => {
+    if (view === 'daily') {
+       return (
+         <div className="flex items-center justify-between py-4">
+            <button onClick={() => changeDate(-1)} className="p-2 hover:bg-white/10 rounded-full"><ChevronLeft size={20}/></button>
+            <div className="text-center">
+              <div className="text-xl font-bold text-white tracking-tight">
+                {currentDate.toLocaleDateString('en-US', { weekday: 'long' })}
+              </div>
+              <div className="text-xs font-mono text-zinc-500 uppercase tracking-widest mt-1">
+                {currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </div>
+            </div>
+            <button onClick={() => changeDate(1)} className="p-2 hover:bg-white/10 rounded-full"><ChevronRight size={20}/></button>
+         </div>
+       );
+    }
+    if (view === 'weekly') {
+      const startOfWeek = getStartOfWeek(currentDate);
+      const weekDays = Array.from({length: 7}, (_, i) => {
+        const d = new Date(startOfWeek);
+        d.setDate(d.getDate() + i);
+        return d;
+      });
+      return (
+        <div className="grid grid-cols-7 gap-1 py-2">
+          {weekDays.map(d => {
+             const isSelected = generateDateKey(d) === generateDateKey(currentDate);
+             const isToday = generateDateKey(d) === generateDateKey(new Date());
+             return (
+               <button 
+                 key={d} 
+                 onClick={() => setCurrentDate(d)}
+                 className={`flex flex-col items-center p-2 rounded-lg transition-all ${isSelected ? 'bg-white text-black' : 'hover:bg-white/5 text-zinc-500'}`}
+               >
+                 <span className="text-[10px] font-bold uppercase tracking-wider mb-1">{d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0,1)}</span>
+                 <span className={`text-sm font-bold ${isToday && !isSelected ? 'text-emerald-500' : ''}`}>{d.getDate()}</span>
+               </button>
+             )
+          })}
+        </div>
+      );
+    }
+    if (view === 'monthly') {
+       const daysInMonth = getDaysInMonth(year, month);
+       const firstDay = getFirstDayOfMonth(year, month);
+       return (
+         <div className="py-2">
+            <div className="flex justify-between items-center mb-4 px-2">
+               <button onClick={() => {const d = new Date(currentDate); d.setMonth(d.getMonth()-1); setCurrentDate(d)}}><ChevronLeft size={16}/></button>
+               <span className="text-xs font-mono">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric'})}</span>
+               <button onClick={() => {const d = new Date(currentDate); d.setMonth(d.getMonth()+1); setCurrentDate(d)}}><ChevronRight size={16}/></button>
+            </div>
+            <div className="grid grid-cols-7 gap-1 text-center">
+               {Array(firstDay).fill(null).map((_, i) => <div key={`empty-${i}`}/>)}
+               {Array.from({length: daysInMonth}, (_, i) => {
+                  const d = new Date(year, month, i+1);
+                  const isSelected = generateDateKey(d) === generateDateKey(currentDate);
+                  return (
+                    <button 
+                      key={i} 
+                      onClick={() => setCurrentDate(d)}
+                      className={`h-7 w-7 mx-auto flex items-center justify-center rounded text-xs ${isSelected ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}
+                    >
+                      {i + 1}
+                    </button>
+                  )
+               })}
+            </div>
+         </div>
+       )
+    }
+  };
+
+  return (
+    <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-4 backdrop-blur-sm">
+      <div className="flex justify-center gap-1 bg-zinc-950/50 p-1 rounded-lg mb-4 w-fit mx-auto border border-white/5">
+        {['daily', 'weekly', 'monthly'].map(m => (
+          <button 
+            key={m}
+            onClick={() => setView(m)}
+            className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${view === m ? 'bg-white text-black shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+      {renderContent()}
+    </div>
+  );
+};
+
+const RoutineWidget = ({ schedule, onUpdate, config, setConfig }) => {
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
+  const [isConfiguring, setIsConfiguring] = useState(false);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+        setCurrentHour(new Date().getHours());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const hours = Array.from({ length: (config.end - config.start + 1) }, (_, i) => {
+    const h = i + config.start;
+    return h < 10 ? `0${h}:00` : `${h}:00`;
+  });
+
+  const handleChange = (time, value) => {
+    onUpdate({ ...schedule, [time]: value });
+  };
+
+  const getCurrentTask = () => {
+      const key = currentHour < 10 ? `0${currentHour}:00` : `${currentHour}:00`;
+      return schedule[key] || null;
+  };
+
+  const currentTask = getCurrentTask();
+
+  return (
+    <div>
+        <div className="flex justify-between items-center mb-4">
+            <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
+                {isConfiguring ? 'Configure Day Range' : 'Schedule'}
+            </div>
+            <button onClick={() => setIsConfiguring(!isConfiguring)} className="text-zinc-500 hover:text-white p-1">
+                <Settings size={14} />
+            </button>
+        </div>
+
+        {isConfiguring ? (
+            <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/10 space-y-4 mb-4">
+                <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400">Start Hour</span>
+                    <input 
+                        type="number" 
+                        min="0" max="23" 
+                        value={config.start} 
+                        onChange={(e) => setConfig({...config, start: parseInt(e.target.value)})}
+                        className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white"
+                    />
+                </div>
+                <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400">End Hour</span>
+                    <input 
+                        type="number" 
+                        min="0" max="23" 
+                        value={config.end} 
+                        onChange={(e) => setConfig({...config, end: parseInt(e.target.value)})}
+                        className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white"
+                    />
+                </div>
+            </div>
+        ) : (
+            <div className="flex flex-col gap-1">
+                {currentTask && (
+                    <div className="mb-4 bg-emerald-900/20 border border-emerald-500/30 rounded-lg p-3 flex items-center gap-3">
+                        <Play size={16} className="text-emerald-400 fill-current" />
+                        <div>
+                            <div className="text-[10px] font-bold uppercase text-emerald-500 tracking-wider">Now</div>
+                            <div className="text-sm font-medium text-emerald-100">{currentTask}</div>
+                        </div>
+                    </div>
+                )}
+
+                {hours.map((time) => {
+                const hour = parseInt(time.split(':')[0]);
+                const isCurrent = hour === currentHour;
+                
+                return (
+                    <div key={time} className={`group flex items-center transition-colors rounded ${isCurrent ? 'bg-white/5 border border-white/10' : 'hover:bg-white/[0.02]'}`}>
+                    <div className={`w-14 py-2 px-2 text-xs font-mono transition-colors ${isCurrent ? 'text-white font-bold' : 'text-zinc-600 group-hover:text-zinc-400'}`}>
+                        {time}
+                    </div>
+                    <div className="flex-1">
+                        <input
+                        type="text"
+                        value={schedule[time] || ''}
+                        onChange={(e) => handleChange(time, e.target.value)}
+                        placeholder="-"
+                        className={`w-full bg-transparent border-none outline-none px-2 py-2 text-sm transition-colors rounded ${isCurrent ? 'text-white font-medium' : 'text-zinc-300 placeholder-zinc-800 focus:text-white'}`}
+                        />
+                    </div>
+                    </div>
+                );
+                })}
+            </div>
+        )}
+    </div>
+  );
+};
+
+const Top3Widget = ({ top3, onUpdate }) => {
+  const completedCount = top3.filter(t => t.done).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+          {top3.map((task, idx) => (
+            <div key={idx} className="flex gap-3 items-start group">
+              <span className={`font-mono text-lg font-bold transition-colors select-none mt-1 ${task.done ? 'text-emerald-600' : 'text-zinc-700 group-hover:text-zinc-500'}`}>
+                0{idx + 1}
+              </span>
+              <textarea
+                rows={1}
+                value={task.text}
+                onChange={(e) => {
+                  const newTop3 = [...top3];
+                  newTop3[idx] = { ...newTop3[idx], text: e.target.value };
+                  onUpdate(newTop3);
+                }}
+                onInput={(e) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                placeholder="Critical Task..."
+                className={`flex-1 bg-transparent border-b outline-none py-1.5 text-sm transition-colors resize-none overflow-hidden placeholder-zinc-800 ${
+                    task.done ? 'text-zinc-600 line-through border-zinc-800' : 'text-zinc-200 border-zinc-800 focus:border-zinc-500'
+                }`}
+              />
+              <button 
+                onClick={() => {
+                    const newTop3 = [...top3];
+                    newTop3[idx] = { ...newTop3[idx], done: !newTop3[idx].done };
+                    onUpdate(newTop3);
+                }}
+                className={`mt-1.5 p-0.5 rounded-full border transition-all ${
+                    task.done 
+                    ? 'bg-emerald-500 border-emerald-500 text-black' 
+                    : 'border-zinc-700 hover:border-zinc-500 text-transparent'
+                }`}
+              >
+                  <CheckCircle size={14} className={task.done ? 'fill-current' : ''} />
+              </button>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+};
+
+const ExpenseWidget = ({ expenses, onUpdate }) => {
+  const [desc, setDesc] = useState('');
+  const [amount, setAmount] = useState('');
+  const total = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+  
+  const add = () => {
+    if (!desc || !amount) return;
+    onUpdate([...expenses, { id: Date.now(), desc, amount: parseFloat(amount) }]);
+    setDesc(''); setAmount('');
+  };
+  const remove = (id) => onUpdate(expenses.filter(e => e.id !== id));
+  
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+          <span className="text-xs text-zinc-500">Total Burn</span>
+          <span className="font-mono text-white text-sm bg-zinc-800 px-2 py-0.5 rounded">${total.toFixed(2)}</span>
+      </div>
+      <div className="flex gap-2 mb-4">
+        <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Desc" className="flex-1 bg-zinc-950/50 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-white/30 transition-colors" />
+        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="$" className="w-20 bg-zinc-950/50 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-white/30 transition-colors" />
+        <button onClick={add} className="p-2 bg-white text-black hover:bg-zinc-200 rounded"><Plus size={14} /></button>
+      </div>
+      <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+         {expenses.map(exp => (
+             <div key={exp.id} className="flex justify-between text-xs items-center group py-2 border-b border-white/5 last:border-0">
+                 <span className="truncate pr-2 text-zinc-400">{exp.desc}</span>
+                 <div className="flex items-center gap-3">
+                     <span className="font-mono text-zinc-300">${exp.amount}</span>
+                     <button onClick={() => remove(exp.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300"><Trash2 size={12} /></button>
+                 </div>
+             </div>
+         ))}
+      </div>
+    </div>
+  );
+};
+
+const TextWidget = ({ value, onChange, placeholder, minHeight }) => (
+  <textarea
+    value={value}
+    onChange={(e) => onChange(e.target.value)}
+    placeholder={placeholder}
+    className={`w-full bg-transparent resize-none outline-none text-sm leading-relaxed text-zinc-300 placeholder-zinc-700 custom-scrollbar ${minHeight || 'h-32'}`}
+  />
+);
+
+const LandingPage = ({ onLogin }) => (
+  <div className="min-h-screen bg-black text-white font-sans selection:bg-white/20">
+    <nav className="max-w-7xl mx-auto px-6 py-8 flex justify-between items-center">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 bg-white rounded flex items-center justify-center font-bold text-black">S</div>
+        <span className="font-bold text-xl tracking-tight">SoloS</span>
+      </div>
+      <button onClick={onLogin} className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Log In</button>
+    </nav>
+
+    <div className="max-w-5xl mx-auto px-6 py-32 text-center">
+      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-zinc-400 mb-8">
+        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> V1.1 SYSTEM ONLINE
+      </div>
+      <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-8 bg-gradient-to-b from-white to-zinc-600 bg-clip-text text-transparent">
+        Execution + Strategy.
+      </h1>
+      <p className="text-lg text-zinc-500 mb-12 max-w-xl mx-auto leading-relaxed">
+        The Daily Stack for execution. The Second Brain for strategy. 
+        All in one minimalist OS.
+      </p>
+      <button 
+        onClick={onLogin}
+        className="px-8 py-4 bg-white text-black font-bold rounded-full hover:bg-zinc-200 transition-all hover:scale-105 active:scale-95"
+      >
+        Initialize System
+      </button>
+    </div>
+    <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #333; border-radius: 20px; }
+    `}</style>
+  </div>
+);
