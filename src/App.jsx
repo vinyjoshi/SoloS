@@ -904,7 +904,7 @@ const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = false, 
 };
 
 const TimelineWidget = ({ currentDate, setCurrentDate }) => {
-  const [view, setView] = useState('weekly'); 
+  const [view, setView] = useState('daily'); 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
@@ -1214,7 +1214,7 @@ const LandingPage = ({ onLogin }) => (
 
     <div className="max-w-3xl mx-auto px-6 py-32 text-center">
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-zinc-400 mb-8">
-        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> V2.4 SYSTEM ONLINE
+        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> v3 SYSTEM ONLINE
       </div>
       <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-8 bg-gradient-to-b from-white to-zinc-600 bg-clip-text text-transparent">
         Execution + Strategy.
