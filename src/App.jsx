@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Analytics } from "@vercel/analytics/react"
 import { 
   CheckCircle, Circle, Trash2, Plus, DollarSign, Brain, BookOpen, 
   Calendar as CalendarIcon, Target, ChevronLeft, ChevronRight, 
