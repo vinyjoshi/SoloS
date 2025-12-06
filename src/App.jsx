@@ -18,6 +18,9 @@ import {
   getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs 
 } from 'firebase/firestore';
 
+// --- PAYMENT UTILITY ---
+import { handlePayment } from '../utils/payment';
+
 // --- CONFIGURATION ---
 const firebaseConfig = {
   apiKey: "AIzaSyByv5ASBuMGUZVEXme6_7xhODcxQkYteAA",
@@ -103,7 +106,7 @@ const LoginPage = ({ onLogin }) => (
 );
 
 // --- COMPONENT: PRICING MODAL ---
-const PricingModal = ({ onClose, headerOffset = 0 }) => (
+const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier }) => (
   createPortal(
     // UPGRADE: Increased z-index to 9999 to ensure it's above the sidebar (which is z-50)
     <div 
@@ -145,47 +148,127 @@ const PricingModal = ({ onClose, headerOffset = 0 }) => (
           <div className="p-8 md:p-12 flex flex-col gap-4">
               <h3 className="text-lg font-medium text-white mb-2">Choose your commitment</h3>
               
-              <button className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group">
+              {/* Weekly Plan */}
+              <button 
+                onClick={() => handlePayment(
+                  user, 
+                  99, // ₹99 for weekly
+                  "Weekly Grind",
+                  async (response) => {
+                     const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+                     await setDoc(userRef, { 
+                       tier: 'pro', 
+                       plan: 'weekly',
+                       paymentId: response.razorpay_payment_id,
+                       lastPayment: serverTimestamp()
+                     }, { merge: true });
+                     setUserTier('pro');
+                     onClose(); 
+                     alert("Welcome to SolOS Pro! 🚀");
+                  }
+                )}
+                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
+              >
                   <div>
                       <div className="font-bold text-white group-hover:text-emerald-400">Weekly Grind</div>
                       <div className="text-xs text-zinc-500">Perfect for sprints</div>
                   </div>
                   <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">$1.50</div>
+                      <div className="font-mono text-lg font-bold text-white">₹99</div>
                       <div className="text-[10px] text-zinc-500">/ week</div>
                   </div>
               </button>
 
-              <button className="w-full p-4 rounded-xl border-2 border-emerald-500 bg-emerald-900/10 relative text-left flex justify-between items-center">
+              {/* Monthly Plan - POPULAR */}
+              <button 
+                onClick={() => handlePayment(
+                  user, 
+                  499, // ₹499 for monthly
+                  "Monthly Focus",
+                  async (response) => {
+                     const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+                     await setDoc(userRef, { 
+                       tier: 'pro', 
+                       plan: 'monthly',
+                       paymentId: response.razorpay_payment_id,
+                       lastPayment: serverTimestamp()
+                     }, { merge: true });
+                     setUserTier('pro');
+                     onClose(); 
+                     alert("Welcome to SolOS Pro! 🚀");
+                  }
+                )}
+                className="w-full p-4 rounded-xl border-2 border-emerald-500 bg-emerald-900/10 relative text-left flex justify-between items-center hover:scale-[1.02] transition-transform cursor-pointer group"
+              >
                   <div className="absolute -top-3 left-4 px-2 bg-emerald-500 text-black text-[10px] font-bold rounded-full">POPULAR</div>
                   <div>
                       <div className="font-bold text-white">Monthly Focus</div>
                       <div className="text-xs text-zinc-400">Standard plan</div>
                   </div>
                   <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">$5.00</div>
+                      <div className="font-mono text-lg font-bold text-white">₹499</div>
                       <div className="text-[10px] text-zinc-500">/ month</div>
                   </div>
               </button>
 
-              <button className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group">
+              {/* Yearly Plan */}
+              <button 
+                onClick={() => handlePayment(
+                  user, 
+                  4999, // ₹4,999 for yearly (saves ~17%)
+                  "Yearly Commit",
+                  async (response) => {
+                     const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+                     await setDoc(userRef, { 
+                       tier: 'pro', 
+                       plan: 'yearly',
+                       paymentId: response.razorpay_payment_id,
+                       lastPayment: serverTimestamp()
+                     }, { merge: true });
+                     setUserTier('pro');
+                     onClose(); 
+                     alert("Welcome to SolOS Pro for a year! 🎉");
+                  }
+                )}
+                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
+              >
                   <div>
                       <div className="font-bold text-white group-hover:text-emerald-400">Yearly Commit</div>
-                      <div className="text-xs text-zinc-500">Save 16%</div>
+                      <div className="text-xs text-zinc-500">Save 17%</div>
                   </div>
                   <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">$50.00</div>
+                      <div className="font-mono text-lg font-bold text-white">₹4,999</div>
                       <div className="text-[10px] text-zinc-500">/ year</div>
                   </div>
               </button>
 
-              <button className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 transition-all text-left flex justify-between items-center group mt-4">
+              {/* Lifetime Plan */}
+              <button 
+                onClick={() => handlePayment(
+                  user, 
+                  9999, // ₹9,999 for lifetime
+                  "Founder Mode",
+                  async (response) => {
+                     const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+                     await setDoc(userRef, { 
+                       tier: 'pro', 
+                       plan: 'lifetime',
+                       paymentId: response.razorpay_payment_id,
+                       lastPayment: serverTimestamp()
+                     }, { merge: true });
+                     setUserTier('pro');
+                     onClose(); 
+                     alert("Welcome to Founder Mode! Lifetime access unlocked 🔥");
+                  }
+                )}
+                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 transition-all text-left flex justify-between items-center group mt-4 cursor-pointer"
+              >
                   <div>
                       <div className="font-bold text-white group-hover:text-purple-400">Founder Mode</div>
                       <div className="text-xs text-zinc-500">One-time payment</div>
                   </div>
                   <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">$99.00</div>
+                      <div className="font-mono text-lg font-bold text-white">₹9,999</div>
                       <div className="text-[10px] text-zinc-500">lifetime</div>
                   </div>
               </button>
@@ -229,9 +312,21 @@ export default function SoloS() {
 
   // Auth Listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      setLoading(false);
+      if (u) {
+        // Check for User Tier in Firestore
+        const userRef = doc(db, 'artifacts', appId, 'users', u.uid, 'settings', 'profile');
+        const unsubscribeProfile = onSnapshot(userRef, (doc) => {
+            if (doc.exists() && doc.data().tier) {
+                setUserTier(doc.data().tier);
+            }
+        });
+        setLoading(false);
+        return () => unsubscribeProfile();
+      } else {
+        setLoading(false);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -379,7 +474,16 @@ export default function SoloS() {
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-[#09090b] to-black text-zinc-300 font-sans selection:bg-emerald-500/30 overflow-x-hidden">
       
       {/* FIX: Z-Index 9999 ensures it sits above everything, including the side panel (z-50) */}
-      {showPricing && <PricingModal onClose={() => setShowPricing(false)} headerOffset={headerHeight} />}
+      {showPricing && (
+        <PricingModal 
+            onClose={() => setShowPricing(false)} 
+            headerOffset={headerHeight}
+            user={user}
+            db={db}
+            appId={appId}
+            setUserTier={setUserTier}
+        />
+      )}
 
       <header ref={headerRef} className="border-b border-white/5 flex justify-center items-center sticky top-0 z-20 bg-[#09090b]/80 backdrop-blur-md">
         <div className="w-full max-w-5xl px-4 md:px-6 py-4 flex justify-between items-center">
