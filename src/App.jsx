@@ -330,7 +330,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier,
                     </div>
 
                     {/* REPLACE 'YOUR_CLIENT_ID' WITH YOUR ACTUAL PAYPAL CLIENT ID */}
-                    <PayPalScriptProvider options={{ "client-id": "AcpJ7YJGWMMci3LKX6dzVuub7nhFGXnV9AMYrMjqVGi4Zx1Ea21zEC35XJh9gTOyKYsxRPvGEgh3ehPE", currency: "USD" }}>
+                    <PayPalScriptProvider options={{ "client-id": "AcpJ7YJGWMMci3LKX6dzVuub7nhFGXnV9AMYrMjqVGi4Zx1Ea21zEC35XJh9gTOyKYsxRPvGEgh3ehPE", currency: "USD", intent: "capture" }}>
                         <PayPalButtons 
                             style={{ layout: "vertical", color: "gold", shape: "rect", label: "pay" }}
                             createOrder={(data, actions) => {
