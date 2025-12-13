@@ -18,6 +18,8 @@ import {
   getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs 
 } from 'firebase/firestore';
 
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+
 // --- PAYMENT UTILITY ---
 import { handlePayment } from '../utils/payment';
 
@@ -105,14 +107,69 @@ const LoginPage = ({ onLogin }) => (
         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
       </svg>
-      Sign in with Google
+      Google
     </button>
-    <div className="mt-8 text-xs text-zinc-600 font-mono">V2.4 • SECURE • ENCRYPTED</div>
+    <div className="mt-8 text-xs text-zinc-600 font-mono">V3 • SECURE • ENCRYPTED</div>
   </div>
 );
 
 // --- COMPONENT: PRICING MODAL ---
-const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier }) => {
+const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier, handlePayment }) => {
+  
+  // 1. State for Location Detection (Default to India to be safe)
+  const [isIndia, setIsIndia] = useState(false);
+
+  // 2. Simple Location Check
+  useEffect(() => {
+    fetch('https://ipapi.co/json/')
+      .then(res => res.json())
+      .then(data => {
+        // Only set to FALSE if we are 100% sure they are NOT in India
+        if (data.country_code && data.country_code !== 'IN') {
+          setIsIndia(false);
+        }
+      })
+      .catch(e => console.error("GeoIP Error:", e));
+  }, []);
+
+  // 3. Handle Successful PayPal Payment
+  const handlePayPalApprove = async (data, actions) => {
+    return actions.order.capture().then(async (details) => {
+      try {
+        // Update Firestore just like Razorpay does
+        const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+        await setDoc(userRef, { 
+          tier: 'pro', 
+          plan: 'international',
+          paymentId: details.id,
+          source: 'paypal',
+          lastPayment: serverTimestamp()
+        }, { merge: true });
+        
+        setUserTier('pro');
+        onClose();
+        alert(`Payment successful! Welcome ${details.payer.name.given_name}`);
+      } catch (error) {
+        console.error("Firestore Error:", error);
+        alert("Payment received, but database update failed. Contact support.");
+      }
+    });
+  };
+
+  // 4. Unified Handler
+  const handlePlanClick = (planType, inrAmount, usdAmount, description) => {
+    if (isIndia) {
+      // --- INDIA: RAZORPAY LOGIC ---
+      handlePayment(user, inrAmount, description, (response) => handleSuccessfulPayment(planType, response));
+    } else {
+      // --- INTERNATIONAL: PayPal Logic ---
+      // Redirect to PayPal checkout in the same window so return URL can be handled by the app.
+      const link = buildPaypalLink(usdAmount, description);
+      if (link) window.location.href = link;
+      else alert('International checkout coming soon!');
+    }
+  };
+
   const handleSuccessfulPayment = async (plan, response) => {
     try {
       const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
@@ -178,72 +235,125 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
                   <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500"/> Unlimited Projects & Areas</li>
                   <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500"/> Priority Support</li>
               </ul>
+              
+              {/* Optional: Location Debugger (Remove before production) */}
+              {/* <div className="mt-8 text-xs text-zinc-600">
+                Detected Region: {isIndia ? "India (Razorpay)" : "International (Gumroad)"}
+              </div> */}
           </div>
 
-          {/* Right: Pricing Options - NORMALIZED */}
+          {/* Right: Pricing Options - DYNAMIC */}
           <div className="p-8 md:p-12 flex flex-col gap-4">
               <h3 className="text-lg font-medium text-white mb-2">Choose your commitment</h3>
-              
-              {/* Weekly Plan */}
-              <button 
-                onClick={() => handlePayment(user, 99, "Weekly Grind", (response) => handleSuccessfulPayment('weekly', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
-              >
-                  <div>
-                      <div className="font-bold text-white group-hover:text-emerald-400">Weekly Grind</div>
-                      <div className="text-xs text-zinc-500">Perfect for sprints</div>
-                  </div>
-                  <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹99</div>
-                      <div className="text-[10px] text-zinc-500">/ week</div>
-                  </div>
-              </button>
 
-              {/* Monthly Plan - NORMALIZED (Only "Popular" badge, no extra emphasis) */}
-              <button 
-                onClick={() => handlePayment(user, 499, "Monthly Focus", (response) => handleSuccessfulPayment('monthly', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer relative"
-              >
-                  <div className="absolute -top-3 left-4 px-2 bg-emerald-500 text-black text-[10px] font-bold rounded-full">POPULAR</div>
-                  <div>
-                      <div className="font-bold text-white group-hover:text-emerald-400">Monthly Focus</div>
-                      <div className="text-xs text-zinc-500">Standard plan</div>
-                  </div>
-                  <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹499</div>
-                      <div className="text-[10px] text-zinc-500">/ month</div>
-                  </div>
-              </button>
+              {isIndia ? (
+                // Preserve existing multi-option flow for India (Razorpay)
+                <>
+                  {/* Weekly Plan */}
+                  <button 
+                    onClick={() => handlePlanClick('weekly', 99, 5, "Weekly Grind")}
+                    className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
+                  >
+                      <div>
+                          <div className="font-bold text-white group-hover:text-emerald-400">Weekly Grind</div>
+                          <div className="text-xs text-zinc-500">Perfect for sprints</div>
+                      </div>
+                      <div className="text-right">
+                          <div className="font-mono text-lg font-bold text-white">
+                            {isIndia ? '₹99' : '$5'}
+                          </div>
+                          <div className="text-[10px] text-zinc-500">/ week</div>
+                      </div>
+                  </button>
 
-              {/* Yearly Plan */}
-              <button 
-                onClick={() => handlePayment(user, 4999, "Yearly Commit", (response) => handleSuccessfulPayment('yearly', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
-              >
-                  <div>
-                      <div className="font-bold text-white group-hover:text-emerald-400">Yearly Commit</div>
-                      <div className="text-xs text-zinc-500">Save 17%</div>
-                  </div>
-                  <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹4,999</div>
-                      <div className="text-[10px] text-zinc-500">/ year</div>
-                  </div>
-              </button>
+                  {/* Monthly Plan */}
+                  <button 
+                    onClick={() => handlePlanClick('monthly', 499, 9, "Monthly Focus")}
+                    className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer relative"
+                  >
+                      <div className="absolute -top-3 left-4 px-2 bg-emerald-500 text-black text-[10px] font-bold rounded-full">POPULAR</div>
+                      <div>
+                          <div className="font-bold text-white group-hover:text-emerald-400">Monthly Focus</div>
+                          <div className="text-xs text-zinc-500">Standard plan</div>
+                      </div>
+                      <div className="text-right">
+                          <div className="font-mono text-lg font-bold text-white">
+                            {isIndia ? '₹499' : '$9'}
+                          </div>
+                          <div className="text-[10px] text-zinc-500">/ month</div>
+                      </div>
+                  </button>
 
-              {/* Lifetime Plan */}
-              <button 
-                onClick={() => handlePayment(user, 9999, "Founder Mode", (response) => handleSuccessfulPayment('lifetime', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 transition-all text-left flex justify-between items-center group mt-4 cursor-pointer"
-              >
-                  <div>
-                      <div className="font-bold text-white group-hover:text-purple-400">Founder Mode</div>
-                      <div className="text-xs text-zinc-500">One-time payment</div>
-                  </div>
-                  <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹9,999</div>
-                      <div className="text-[10px] text-zinc-500">lifetime</div>
-                  </div>
-              </button>
+                  {/* Yearly Plan */}
+                  <button 
+                    onClick={() => handlePlanClick('yearly', 4999, 49, "Yearly Commit")}
+                    className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
+                  >
+                      <div>
+                          <div className="font-bold text-white group-hover:text-emerald-400">Yearly Commit</div>
+                          <div className="text-xs text-zinc-500">Save ~17%</div>
+                      </div>
+                      <div className="text-right">
+                          <div className="font-mono text-lg font-bold text-white">
+                            {isIndia ? '₹4,999' : '$49'}
+                          </div>
+                          <div className="text-[10px] text-zinc-500">/ year</div>
+                      </div>
+                  </button>
+
+                  {/* Lifetime Plan */}
+                  <button 
+                    onClick={() => handlePlanClick('lifetime', 9999, 99, "Founder Mode")}
+                    className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 transition-all text-left flex justify-between items-center group mt-4 cursor-pointer"
+                  >
+                      <div>
+                          <div className="font-bold text-white group-hover:text-purple-400">Founder Mode</div>
+                          <div className="text-xs text-zinc-500">One-time payment</div>
+                      </div>
+                      <div className="text-right">
+                          <div className="font-mono text-lg font-bold text-white">
+                            {isIndia ? '₹9,999' : '$99'}
+                          </div>
+                          <div className="text-[10px] text-zinc-500">lifetime</div>
+                      </div>
+                  </button>
+                </>
+              ) : (
+                // International users: single $49 option — Buy 1 year, get 1 year free
+                <div className="w-full">
+                    <div className="mb-4 p-4 rounded-xl border border-white/10 bg-zinc-900">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="font-bold text-white">Global Access</div>
+                        <div className="font-mono text-xl text-white">$49</div>
+                      </div>
+                      <div className="text-xs text-zinc-400">1 Year Access + 1 Year Free</div>
+                    </div>
+
+                    {/* REPLACE 'YOUR_CLIENT_ID' WITH YOUR ACTUAL PAYPAL CLIENT ID */}
+                    <PayPalScriptProvider options={{ "client-id": "AcpJ7YJGWMMci3LKX6dzVuub7nhFGXnV9AMYrMjqVGi4Zx1Ea21zEC35XJh9gTOyKYsxRPvGEgh3ehPE", currency: "USD" }}>
+                        <PayPalButtons 
+                            style={{ layout: "vertical", color: "gold", shape: "rect", label: "pay" }}
+                            createOrder={(data, actions) => {
+                                return actions.order.create({
+                                    purchase_units: [{
+                                        amount: {
+                                            currency_code: "USD",
+                                            value: "49.00"
+                                        }, // USD Amount
+                                        description: "SolOS Pro International"
+                                    }],
+                                });
+                            }}
+                            onApprove={handlePayPalApprove}
+                            onError={(err) => {
+                                console.error("PayPal Error:", err);
+                                alert("PayPal could not process the payment.");
+                            }}
+                        />
+                    </PayPalScriptProvider>
+                    <div className="text-[10px] text-center text-zinc-600 mt-2">Secured by PayPal</div>
+                </div>
+              )}
           </div>
         </div>
       </div>
@@ -402,7 +512,7 @@ export default function SoloS() {
       };
       fetchMonthlyBurn();
   }, [user, currentDate, dayData.expenses]);
-
+  
   const handleLogin = async () => {
     try { 
       await signInWithPopup(auth, googleProvider);
