@@ -117,7 +117,7 @@ const LoginPage = ({ onLogin }) => (
 const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier, handlePayment }) => {
   
   // 1. State for Location Detection (Default to India to be safe)
-  const [isIndia, setIsIndia] = useState(false);
+  const [isIndia, setIsIndia] = useState(true);
 
   // 2. Simple Location Check
   useEffect(() => {
