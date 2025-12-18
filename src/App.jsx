@@ -12,14 +12,17 @@ import {
 
 import { initializeApp } from 'firebase/app';
 import { 
-  getAuth, signOut, onAuthStateChanged, signInWithPopup, GoogleAuthProvider 
+  getAuth, signOut, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInAnonymously
 } from 'firebase/auth';
+
 import { 
   getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs 
 } from 'firebase/firestore';
 
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+
 // --- PAYMENT UTILITY ---
-import { handlePayment } from '../utils/payment';
+import { handleRazorpayPayment } from '../utils/payment';
 
 // --- CONFIGURATION ---
 const firebaseConfig = {
@@ -82,48 +85,104 @@ const emptyDayState = {
 };
 
 // --- COMPONENT: LOGIN PAGE ---
-const LoginPage = ({ onLogin }) => (
+const LoginPage = ({ onLogin, onDemoMode }) => (
   <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center p-6 text-center">
     <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]">
       <img src="/SolOS.png" alt="SolOS Logo" className="w-full h-full object-cover"/>
     </div>
+    
     <h1 className="text-4xl md:text-6xl font-bold text-zinc-600 mb-6 tracking-tight">
       Sol<span className="text-white">OS</span>
     </h1>
+    
     <p className="text-zinc-400 max-w-md mb-12 text-lg leading-relaxed">
       The ruthlessly minimalist operating system for founders. 
       Execution on the left. Strategy on the right.
     </p>
     
-    <button 
-      onClick={onLogin}
-      className="group relative flex items-center gap-3 px-8 py-4 bg-white text-black font-bold rounded-full hover:scale-105 transition-all duration-200 active:scale-95"
-    >
-      <svg className="w-5 h-5" viewBox="0 0 24 24">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-      </svg>
-      Sign in with Google
-    </button>
-    <div className="mt-8 text-xs text-zinc-600 font-mono">V2.4 • SECURE • ENCRYPTED</div>
+    {/* CONSTRAINED BUTTONS CONTAINER */}
+    <div className="w-full max-w-xs space-y-3">
+      {/* Google Sign In */}
+      <button 
+        onClick={onLogin}
+        className="group relative flex items-center justify-center gap-3 px-6 py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition-all duration-200 active:scale-95 w-full"
+      >
+        <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        <span className="hidden sm:inline">Google</span>
+        <span className="sm:hidden">Google</span>
+      </button>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3 my-4">
+        <div className="flex-1 h-px bg-white/10"></div>
+        <span className="text-xs text-zinc-500 font-mono">OR</span>
+        <div className="flex-1 h-px bg-white/10"></div>
+      </div>
+
+      {/* Demo Mode */}
+      <button 
+        onClick={onDemoMode}
+        className="group relative flex items-center justify-center gap-3 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-full transition-all duration-200 active:scale-95 w-full"
+      >
+        <span className="hidden sm:inline">Guest Mode</span>
+        <span className="sm:hidden">Demo</span>
+      </button>
+    </div>
+
+    <div className="mt-12 text-xs text-zinc-600 font-mono">V3 • SECURE • ENCRYPTED</div>
   </div>
 );
 
 // --- COMPONENT: PRICING MODAL ---
 const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier }) => {
+  const [isIndia, setIsIndia] = useState(true);
+  const [isLoadingGeo, setIsLoadingGeo] = useState(true);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+
+  // Detect location on mount
+  useEffect(() => {
+    const detectLocation = async () => {
+      try {
+        const response = await fetch('https://ipapi.co/json/', {
+          method: 'GET',
+          headers: { Accept: 'application/json' }
+        });
+        const data = await response.json();
+        
+        // Default to India, only set false if confirmed NOT India
+        if (data.country_code && data.country_code !== 'IN') {
+          setIsIndia(false);
+        }
+      } catch (error) {
+        console.error('GeoIP Detection failed:', error);
+        // Default to India on error
+        setIsIndia(true);
+      } finally {
+        setIsLoadingGeo(false);
+      }
+    };
+
+    detectLocation();
+  }, []);
+
   const handleSuccessfulPayment = async (plan, response) => {
+    setPaymentProcessing(true);
     try {
       const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
       await setDoc(userRef, { 
-        tier: 'pro', 
+        tier: 'pro',
         plan: plan,
-        paymentId: response.razorpay_payment_id,
+        paymentId: response.razorpay_payment_id || response.id,
+        source: isIndia ? 'razorpay' : 'paypal',
         lastPayment: serverTimestamp()
       }, { merge: true });
+
       setUserTier('pro');
-      onClose();
       
       // Success toast
       const toast = document.createElement('div');
@@ -138,10 +197,24 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
       `;
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 5000);
+      
+      setPaymentProcessing(false);
+      onClose();
     } catch (error) {
       console.error('Error updating tier:', error);
+      setPaymentProcessing(false);
       alert('Payment successful but failed to update account. Please contact support.');
     }
+  };
+
+  const handleRazorpayClick = (planType, inrAmount, description) => {
+    setPaymentProcessing(true);
+    handleRazorpayPayment(user, inrAmount, description, (response) => {
+      setPaymentProcessing(false);
+      handleSuccessfulPayment(planType, response);
+    }).catch(() => {
+      setPaymentProcessing(false);
+    });
   };
 
   return createPortal(
@@ -160,90 +233,149 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
             <X size={20} />
           </button>
         </div>
+        
         <div 
           className="grid md:grid-cols-2 overflow-y-auto"
           style={{ maxHeight: `calc(100vh - ${headerOffset + 96}px)` }}
         >
           {/* Left: Value Prop */}
           <div className="p-8 md:p-12 bg-zinc-900 flex flex-col justify-center">
-              <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-900/20">
-                  <Shield className="text-black" size={24} />
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-4">Unlock Your Potential.</h2>
-              <p className="text-zinc-400 mb-8 leading-relaxed">
-                  SolOS Free is designed for starters. SolOS Pro is designed for finishers. 
-              </p>
-              <ul className="space-y-3 text-sm text-zinc-300">
-                  <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500"/> Unlimited History</li>
-                  <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500"/> Unlimited Projects & Areas</li>
-                  <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500"/> Priority Support</li>
-              </ul>
+            <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-900/20">
+              <Shield className="text-black" size={24} />
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-4">Unlock Your Potential.</h2>
+            <p className="text-zinc-400 mb-8 leading-relaxed">
+              SolOS Free is designed for starters. SolOS Pro is designed for finishers.
+            </p>
+            <ul className="space-y-3 text-sm text-zinc-300">
+              <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500" /> Unlimited History</li>
+              <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500" /> Unlimited Projects & Areas</li>
+              <li className="flex items-center gap-3"><CheckCircle size={16} className="text-emerald-500" /> Priority Support</li>
+            </ul>
           </div>
 
-          {/* Right: Pricing Options - NORMALIZED */}
+          {/* Right: Pricing Options */}
           <div className="p-8 md:p-12 flex flex-col gap-4">
-              <h3 className="text-lg font-medium text-white mb-2">Choose your commitment</h3>
-              
-              {/* Weekly Plan */}
-              <button 
-                onClick={() => handlePayment(user, 99, "Weekly Grind", (response) => handleSuccessfulPayment('weekly', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
-              >
+            <h3 className="text-lg font-medium text-white mb-2">Choose your commitment</h3>
+
+            {isLoadingGeo ? (
+              <div className="text-center py-12">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-zinc-600 border-t-emerald-500"></div>
+                <div className="text-zinc-400 text-sm mt-3">Detecting your region...</div>
+              </div>
+            ) : isIndia ? (
+              // ===== INDIA - RAZORPAY =====
+              <>
+                <button 
+                  onClick={() => handleRazorpayClick('weekly', 99, 'Weekly Grind')}
+                  disabled={paymentProcessing}
+                  className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer disabled:opacity-50"
+                >
                   <div>
-                      <div className="font-bold text-white group-hover:text-emerald-400">Weekly Grind</div>
-                      <div className="text-xs text-zinc-500">Perfect for sprints</div>
+                    <div className="font-bold text-white group-hover:text-emerald-400">Weekly Grind</div>
+                    <div className="text-xs text-zinc-500">Perfect for sprints</div>
                   </div>
                   <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹99</div>
-                      <div className="text-[10px] text-zinc-500">/ week</div>
+                    <div className="font-mono text-lg font-bold text-white">₹99</div>
+                    <div className="text-[10px] text-zinc-500">/ week</div>
                   </div>
-              </button>
+                </button>
 
-              {/* Monthly Plan - NORMALIZED (Only "Popular" badge, no extra emphasis) */}
-              <button 
-                onClick={() => handlePayment(user, 499, "Monthly Focus", (response) => handleSuccessfulPayment('monthly', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer relative"
-              >
+                <button 
+                  onClick={() => handleRazorpayClick('monthly', 499, 'Monthly Focus')}
+                  disabled={paymentProcessing}
+                  className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer relative disabled:opacity-50"
+                >
                   <div className="absolute -top-3 left-4 px-2 bg-emerald-500 text-black text-[10px] font-bold rounded-full">POPULAR</div>
                   <div>
-                      <div className="font-bold text-white group-hover:text-emerald-400">Monthly Focus</div>
-                      <div className="text-xs text-zinc-500">Standard plan</div>
+                    <div className="font-bold text-white group-hover:text-emerald-400">Monthly Focus</div>
+                    <div className="text-xs text-zinc-500">Standard plan</div>
                   </div>
                   <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹499</div>
-                      <div className="text-[10px] text-zinc-500">/ month</div>
+                    <div className="font-mono text-lg font-bold text-white">₹499</div>
+                    <div className="text-[10px] text-zinc-500">/ month</div>
                   </div>
-              </button>
+                </button>
 
-              {/* Yearly Plan */}
-              <button 
-                onClick={() => handlePayment(user, 4999, "Yearly Commit", (response) => handleSuccessfulPayment('yearly', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer"
-              >
+                <button 
+                  onClick={() => handleRazorpayClick('yearly', 4999, 'Yearly Commit')}
+                  disabled={paymentProcessing}
+                  className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer disabled:opacity-50"
+                >
                   <div>
-                      <div className="font-bold text-white group-hover:text-emerald-400">Yearly Commit</div>
-                      <div className="text-xs text-zinc-500">Save 17%</div>
+                    <div className="font-bold text-white group-hover:text-emerald-400">Yearly Commit</div>
+                    <div className="text-xs text-zinc-500">Save ~17%</div>
                   </div>
                   <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹4,999</div>
-                      <div className="text-[10px] text-zinc-500">/ year</div>
+                    <div className="font-mono text-lg font-bold text-white">₹4,999</div>
+                    <div className="text-[10px] text-zinc-500">/ year</div>
                   </div>
-              </button>
+                </button>
 
-              {/* Lifetime Plan */}
-              <button 
-                onClick={() => handlePayment(user, 9999, "Founder Mode", (response) => handleSuccessfulPayment('lifetime', response))}
-                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 transition-all text-left flex justify-between items-center group mt-4 cursor-pointer"
-              >
+                <button 
+                  onClick={() => handleRazorpayClick('lifetime', 9999, 'Founder Mode')}
+                  disabled={paymentProcessing}
+                  className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 transition-all text-left flex justify-between items-center group mt-4 cursor-pointer disabled:opacity-50"
+                >
                   <div>
-                      <div className="font-bold text-white group-hover:text-purple-400">Founder Mode</div>
-                      <div className="text-xs text-zinc-500">One-time payment</div>
+                    <div className="font-bold text-white group-hover:text-purple-400">Founder Mode</div>
+                    <div className="text-xs text-zinc-500">One-time payment</div>
                   </div>
                   <div className="text-right">
-                      <div className="font-mono text-lg font-bold text-white">₹9,999</div>
-                      <div className="text-[10px] text-zinc-500">lifetime</div>
+                    <div className="font-mono text-lg font-bold text-white">₹9,999</div>
+                    <div className="text-[10px] text-zinc-500">lifetime</div>
                   </div>
-              </button>
+                </button>
+              </>
+            ) : (
+              // ===== INTERNATIONAL - PAYPAL =====
+              <PayPalScriptProvider options={{ 
+                "client-id": "AcpJ7YJGWMMci3LKX6dzVuub7nhFGXnV9AMYrMjqVGi4Zx1Ea21zEC35XJh9gTOyKYsxRPvGEgh3ehPE", 
+                currency: "USD", 
+                intent: "capture" 
+              }}>
+                <div className="w-full">
+                  <div className="mb-4 p-4 rounded-xl border border-white/10 bg-zinc-900">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="font-bold text-white">Global Access</div>
+                      <div className="font-mono text-xl text-white">$49</div>
+                    </div>
+                    <div className="text-xs text-zinc-400">1 Year Access + 1 Year Free</div>
+                  </div>
+
+                  {paymentProcessing && (
+                    <div className="text-center py-4 text-zinc-400 text-sm">Processing payment...</div>
+                  )}
+
+                  {!paymentProcessing && (
+                    <PayPalButtons 
+                      style={{ layout: "vertical", color: "gold", shape: "rect", label: "pay" }}
+                      createOrder={(data, actions) => {
+                        return actions.order.create({
+                          purchase_units: [{
+                            amount: {
+                              currency_code: "USD",
+                              value: "49.00"
+                            },
+                            description: "SolOS Pro International"
+                          }],
+                        });
+                      }}
+                      onApprove={(data, actions) => {
+                        return actions.order.capture().then(async (details) => {
+                          handleSuccessfulPayment('international', details);
+                        });
+                      }}
+                      onError={(err) => {
+                        console.error("PayPal Error:", err);
+                        alert("PayPal could not process the payment. Please try again.");
+                      }}
+                    />
+                  )}
+                  <div className="text-[10px] text-center text-zinc-600 mt-2">Secured by PayPal</div>
+                </div>
+              </PayPalScriptProvider>
+            )}
           </div>
         </div>
       </div>
@@ -268,6 +400,7 @@ export default function SoloS() {
   const [showPricing, setShowPricing] = useState(false); // Paywall State
   const [userTier, setUserTier] = useState('free'); // 'free' or 'pro'
   const [headerHeight, setHeaderHeight] = useState(80);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const profileMenuRef = useRef(null);
   const headerRef = useRef(null);
@@ -291,9 +424,19 @@ export default function SoloS() {
         // Check for User Tier in Firestore
         const userRef = doc(db, 'artifacts', appId, 'users', u.uid, 'settings', 'profile');
         const unsubscribeProfile = onSnapshot(userRef, (doc) => {
-            if (doc.exists() && doc.data().tier) {
-                setUserTier(doc.data().tier);
+          if (doc.exists()) {
+            const profileData = doc.data();
+            
+            // Load tier
+            if (profileData.tier) {
+              setUserTier(profileData.tier);
             }
+            
+            // NEWLY ADDED: Load routine config
+            if (profileData.routineConfig) {
+              setRoutineConfig(profileData.routineConfig);
+            }
+          }
         });
         setLoading(false);
         return () => unsubscribeProfile();
@@ -402,10 +545,21 @@ export default function SoloS() {
       };
       fetchMonthlyBurn();
   }, [user, currentDate, dayData.expenses]);
-
+  
+  const handleDemoMode = async () => {
+    try {
+      await signInAnonymously(auth);
+      setIsDemoMode(true);
+    } catch (error) {
+      console.error('Guest mode failed:', error);
+      alert('Failed to start guest mode. Please try again.');
+    }
+  };
+  
   const handleLogin = async () => {
     try { 
       await signInWithPopup(auth, googleProvider);
+      setIsDemoMode(false);
     } catch (e) { 
       console.error("Login failed", e);
       if (e.code === 'auth/unauthorized-domain') {
@@ -441,11 +595,27 @@ export default function SoloS() {
 
   if (loading) return <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-zinc-500 font-mono animate-pulse">BOOTING KERNEL...</div>;
 
-  if (!user) return <LoginPage onLogin={handleLogin} />;
+  if (!user) return <LoginPage onLogin={handleLogin} onDemoMode={handleDemoMode} />;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-[#09090b] to-black text-zinc-300 font-sans selection:bg-emerald-500/30 overflow-x-hidden">
       
+      {/* DEMO MODE BANNER */}
+      {isDemoMode && (
+        <div className="bg-emerald-500/20 border-b border-emerald-500/50 px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-xs font-mono text-emerald-400 uppercase tracking-wider">Guest MODE • Data will be lost on logout</span>
+          </div>
+          <button 
+            onClick={() => signOut(auth)}
+            className="text-xs text-emerald-400 hover:text-emerald-300 font-mono transition-colors"
+          >
+            Exit Demo
+          </button>
+        </div>
+      )}
+
       {/* FIX: Z-Index 9999 ensures it sits above everything, including the side panel (z-50) */}
       {showPricing && (
         <PricingModal 
@@ -491,41 +661,48 @@ export default function SoloS() {
                       )}
                    </button>
                    {showProfileMenu && (
-                        <div className="absolute top-full right-0 mt-2 w-56 bg-zinc-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="absolute top-full right-0 mt-2 w-56 bg-zinc-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
+                        
                         {/* Current Plan Display */}
                         <div className="px-4 py-3 bg-zinc-800/50 border-b border-white/10">
-                            <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Current Plan</div>
-                            <div className="flex items-center gap-2">
-                            {userTier === 'pro' ? (
-                                <>
+                          <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Current Plan</div>
+                          <div className="flex items-center gap-2">
+                            {isDemoMode ? (
+                              <>
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <span className="text-sm font-bold text-emerald-400">Guest Mode</span>
+                              </>
+                            ) : userTier === 'pro' ? (
+                              <>
                                 <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                                 <span className="text-sm font-bold text-emerald-400">SolOS Pro</span>
-                                </>
+                              </>
                             ) : (
-                                <>
+                              <>
                                 <div className="w-2 h-2 rounded-full bg-zinc-600"></div>
                                 <span className="text-sm font-bold text-zinc-400">Free Plan</span>
-                                </>
+                              </>
                             )}
-                            </div>
+                          </div>
                         </div>
                         
                         {/* Menu Actions */}
-                        {userTier === 'free' && (
-                            <button 
+                        {!isDemoMode && userTier === 'free' && (
+                          <button 
                             onClick={() => { setShowPricing(true); setShowProfileMenu(false); }} 
                             className="w-full text-left px-4 py-3 text-xs text-emerald-400 hover:bg-white/5 flex items-center gap-2 transition-colors border-b border-white/5"
-                            >
+                          >
                             <DollarSign size={14} /> Upgrade to Pro
-                            </button>
+                          </button>
                         )}
+                        
                         <button 
-                            onClick={() => signOut(auth)} 
-                            className="w-full text-left px-4 py-3 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 transition-colors"
+                          onClick={() => signOut(auth)} 
+                          className="w-full text-left px-4 py-3 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 transition-colors"
                         >
-                            <LogOut size={14} /> Log Out
+                          <LogOut size={14} /> Log Out
                         </button>
-                    </div>
+                      </div>
                     )}
                 </div>
                 <div className="h-6 w-px bg-white/10 mx-2 hidden md:block"></div>
@@ -1009,10 +1186,11 @@ const TimelineWidget = ({ currentDate, setCurrentDate }) => {
 const RoutineWidget = ({ schedule, onUpdate, config, setConfig }) => {
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
   const [isConfiguring, setIsConfiguring] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   useEffect(() => {
     const interval = setInterval(() => {
-        setCurrentHour(new Date().getHours());
+      setCurrentHour(new Date().getHours());
     }, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -1026,82 +1204,142 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig }) => {
     onUpdate({ ...schedule, [time]: value });
   };
 
+  // NEWLY ADDED: Save routine config to Firestore
+  const saveRoutineConfig = async (newStart, newEnd) => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+      await updateDoc(userRef, {
+        routineConfig: {
+          start: newStart,
+          end: newEnd
+        },
+        lastUpdated: serverTimestamp()
+      });
+      setIsSaving(false);
+    } catch (error) {
+      console.error('Error saving routine config:', error);
+      setIsSaving(false);
+      alert('Failed to save routine config. Please try again.');
+    }
+  };
+
+  const handleStartChange = (value) => {
+    const newStart = parseInt(value);
+    if (newStart < config.end) {
+      setConfig({ ...config, start: newStart });
+      saveRoutineConfig(newStart, config.end);
+    } else {
+      alert('Start time must be before end time');
+    }
+  };
+
+  const handleEndChange = (value) => {
+    const newEnd = parseInt(value);
+    if (newEnd > config.start) {
+      setConfig({ ...config, end: newEnd });
+      saveRoutineConfig(config.start, newEnd);
+    } else {
+      alert('End time must be after start time');
+    }
+  };
+
   const getCurrentTask = () => {
-      const key = currentHour < 10 ? `0${currentHour}:00` : `${currentHour}:00`;
-      return schedule[key] || null;
+    const key = currentHour < 10 ? `0${currentHour}:00` : `${currentHour}:00`;
+    return schedule[key] || null;
   };
 
   const currentTask = getCurrentTask();
 
   return (
     <div>
-        <div className="flex justify-between items-center mb-4">
-            <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
-                {isConfiguring ? 'Configure Day Range' : 'Schedule'}
-            </div>
-            <button onClick={() => setIsConfiguring(!isConfiguring)} className="text-zinc-500 hover:text-white p-1">
-                <Settings size={14} />
-            </button>
+      <div className="flex justify-between items-center mb-4">
+        <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
+          {isConfiguring ? 'Configure Day Range' : 'Schedule'}
         </div>
+        <div className="flex items-center gap-2">
+          {isSaving && <div className="text-[10px] text-emerald-400 animate-pulse">Saving...</div>}
+          <button 
+            onClick={() => setIsConfiguring(!isConfiguring)} 
+            className="text-zinc-500 hover:text-white p-1 transition-colors"
+          >
+            <Settings size={14} />
+          </button>
+        </div>
+      </div>
 
-        {isConfiguring ? (
-            <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/10 space-y-4 mb-4">
-                <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-400">Start Hour</span>
-                    <input 
-                        type="number" 
-                        min="0" max="23" 
-                        value={config.start} 
-                        onChange={(e) => setConfig({...config, start: parseInt(e.target.value)})}
-                        className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white"
-                    />
-                </div>
-                <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-400">End Hour</span>
-                    <input 
-                        type="number" 
-                        min="0" max="23" 
-                        value={config.end} 
-                        onChange={(e) => setConfig({...config, end: parseInt(e.target.value)})}
-                        className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white"
-                    />
-                </div>
+      {isConfiguring ? (
+        <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/10 space-y-4 mb-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-zinc-400">Start Hour</span>
+            <div className="flex items-center gap-2">
+              <input 
+                type="number" 
+                min="0" 
+                max="23" 
+                value={config.start} 
+                onChange={(e) => handleStartChange(e.target.value)}
+                className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
+                disabled={isSaving}
+              />
+              <span className="text-xs text-zinc-600">:00</span>
             </div>
-        ) : (
-            <div className="flex flex-col gap-1">
-                {currentTask && (
-                    <div className="mb-4 bg-emerald-900/20 border border-emerald-500/30 rounded-lg p-3 flex items-center gap-3">
-                        <Play size={16} className="text-emerald-400 fill-current" />
-                        <div>
-                            <div className="text-[10px] font-bold uppercase text-emerald-500 tracking-wider">Now</div>
-                            <div className="text-sm font-medium text-emerald-100">{currentTask}</div>
-                        </div>
-                    </div>
-                )}
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-zinc-400">End Hour</span>
+            <div className="flex items-center gap-2">
+              <input 
+                type="number" 
+                min="0" 
+                max="23" 
+                value={config.end} 
+                onChange={(e) => handleEndChange(e.target.value)}
+                className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
+                disabled={isSaving}
+              />
+              <span className="text-xs text-zinc-600">:00</span>
+            </div>
+          </div>
+          <div className="text-[10px] text-zinc-600 bg-zinc-900/50 p-2 rounded">
+            ℹ️ Changes are saved automatically to your profile
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {currentTask && (
+            <div className="mb-4 bg-emerald-900/20 border border-emerald-500/30 rounded-lg p-3 flex items-center gap-3">
+              <Play size={16} className="text-emerald-400 fill-current" />
+              <div>
+                <div className="text-[10px] font-bold uppercase text-emerald-500 tracking-wider">Now</div>
+                <div className="text-sm font-medium text-emerald-100">{currentTask}</div>
+              </div>
+            </div>
+          )}
 
-                {hours.map((time) => {
-                const hour = parseInt(time.split(':')[0]);
-                const isCurrent = hour === currentHour;
-                
-                return (
-                    <div key={time} className={`group flex items-center transition-colors rounded ${isCurrent ? 'bg-white/5 border border-white/10' : 'hover:bg-white/[0.02]'}`}>
-                    <div className={`w-14 py-2 px-2 text-xs font-mono transition-colors ${isCurrent ? 'text-white font-bold' : 'text-zinc-600 group-hover:text-zinc-400'}`}>
-                        {time}
-                    </div>
-                    <div className="flex-1">
-                        <input
-                        type="text"
-                        value={schedule[time] || ''}
-                        onChange={(e) => handleChange(time, e.target.value)}
-                        placeholder="-"
-                        className={`w-full bg-transparent border-none outline-none px-2 py-2 text-sm transition-colors rounded ${isCurrent ? 'text-white font-medium' : 'text-zinc-300 placeholder-zinc-800 focus:text-white'}`}
-                        />
-                    </div>
-                    </div>
-                );
-                })}
-            </div>
-        )}
+          {hours.map((time) => {
+            const hour = parseInt(time.split(':')[0]);
+            const isCurrent = hour === currentHour;
+            
+            return (
+              <div key={time} className={`group flex items-center transition-colors rounded ${isCurrent ? 'bg-white/5 border border-white/10' : 'hover:bg-white/[0.02]'}`}>
+                <div className={`w-14 py-2 px-2 text-xs font-mono transition-colors ${isCurrent ? 'text-white font-bold' : 'text-zinc-600 group-hover:text-zinc-400'}`}>
+                  {time}
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={schedule[time] || ''}
+                    onChange={(e) => handleChange(time, e.target.value)}
+                    placeholder="-"
+                    className={`w-full bg-transparent border-none outline-none px-2 py-2 text-sm transition-colors rounded ${isCurrent ? 'text-white font-medium' : 'text-zinc-300 placeholder-zinc-800 focus:text-white'}`}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
@@ -1158,36 +1396,161 @@ const Top3Widget = ({ top3, onUpdate }) => {
 const ExpenseWidget = ({ expenses, onUpdate }) => {
   const [desc, setDesc] = useState('');
   const [amount, setAmount] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  
+  // Predefined expense categories
+  const CATEGORIES = [
+    { id: 'food', label: 'Food', color: 'bg-orange-500/10 text-orange-400 border-orange-500/30' },
+    { id: 'transport', label: 'Transport', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
+    { id: 'bills', label: 'Bills', color: 'bg-red-500/10 text-red-400 border-red-500/30' },
+    { id: 'home', label: 'Home Essentials', color: 'bg-green-500/10 text-green-400 border-green-500/30' },
+    { id: 'custom', label: 'Custom', color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30' }
+  ];
+
   const total = expenses.reduce((acc, curr) => acc + curr.amount, 0);
   
   const add = () => {
-    if (!desc || !amount) return;
-    onUpdate([...expenses, { id: Date.now(), desc, amount: parseFloat(amount) }]);
-    setDesc(''); setAmount('');
+    if (!desc || !amount || !selectedCategory) {
+      alert('Please select a category, add description, and amount');
+      return;
+    }
+    
+    onUpdate([
+      ...expenses, 
+      { 
+        id: Date.now(), 
+        category: selectedCategory,
+        desc, 
+        amount: parseFloat(amount) 
+      }
+    ]);
+    
+    setDesc('');
+    setAmount('');
+    setSelectedCategory(null);
   };
+
   const remove = (id) => onUpdate(expenses.filter(e => e.id !== id));
+
+  const getCategoryLabel = (categoryId) => {
+    return CATEGORIES.find(c => c.id === categoryId)?.label || 'Unknown';
+  };
+
+  const getCategoryColor = (categoryId) => {
+    return CATEGORIES.find(c => c.id === categoryId)?.color || 'bg-zinc-500/10 text-zinc-400';
+  };
+
+  const getCategoryBgColor = (categoryId) => {
+    const colorMap = {
+      food: 'bg-orange-500/20 border-l-4 border-orange-500',
+      transport: 'bg-blue-500/20 border-l-4 border-blue-500',
+      bills: 'bg-red-500/20 border-l-4 border-red-500',
+      home: 'bg-green-500/20 border-l-4 border-green-500',
+      custom: 'bg-zinc-500/20 border-l-4 border-zinc-500'
+    };
+    return colorMap[categoryId] || 'bg-zinc-500/20 border-l-4 border-zinc-500';
+  };
   
   return (
     <div>
+      {/* Total Burn */}
       <div className="flex justify-between items-center mb-4">
-          <span className="text-xs text-zinc-500">Total Burn</span>
-          <span className="font-mono text-white text-sm bg-zinc-800 px-2 py-0.5 rounded">${total.toFixed(2)}</span>
+        <span className="text-xs text-zinc-500">Total Burn</span>
+        <span className="font-mono text-white text-sm bg-zinc-800 px-2 py-0.5 rounded">${total.toFixed(2)}</span>
       </div>
+
+      {/* Category Selector Buttons */}
+      <div className="grid grid-cols-5 gap-1.5 mb-4">
+        {CATEGORIES.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategory(cat.id)}
+            className={`py-2 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+              selectedCategory === cat.id
+                ? `${cat.color} ring-2 ring-offset-1 ring-offset-[#09090b]`
+                : `${cat.color} hover:ring-1 ring-offset-1 ring-offset-[#09090b] opacity-60 hover:opacity-100`
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Selected Category Indicator */}
+      {selectedCategory && (
+        <div className="mb-4 p-2 rounded-lg bg-zinc-900/50 border border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`text-[10px] font-bold uppercase px-2 py-1 rounded border ${getCategoryColor(selectedCategory)}`}>
+              {getCategoryLabel(selectedCategory)}
+            </div>
+            <span className="text-[10px] text-zinc-500">Selected</span>
+          </div>
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Input Fields */}
       <div className="flex gap-2 mb-4">
-        <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Desc" className="flex-1 bg-zinc-950/50 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-white/30 transition-colors" />
-        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="$" className="w-20 bg-zinc-950/50 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-white/30 transition-colors" />
-        <button onClick={add} className="p-2 bg-white text-black hover:bg-zinc-200 rounded"><Plus size={14} /></button>
+        <input 
+          type="text" 
+          value={desc} 
+          onChange={(e) => setDesc(e.target.value)} 
+          placeholder="Description" 
+          className="flex-1 bg-zinc-950/50 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-white/30 transition-colors placeholder-zinc-700" 
+        />
+        <input 
+          type="number" 
+          value={amount} 
+          onChange={(e) => setAmount(e.target.value)} 
+          placeholder="$" 
+          className="w-20 bg-zinc-950/50 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-white/30 transition-colors placeholder-zinc-700" 
+        />
+        <button 
+          onClick={add} 
+          disabled={!selectedCategory}
+          className="p-2 bg-white text-black hover:bg-zinc-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        >
+          <Plus size={14} />
+        </button>
       </div>
-      <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-         {expenses.map(exp => (
-             <div key={exp.id} className="flex justify-between text-xs items-center group py-2 border-b border-white/5 last:border-0">
-                 <span className="truncate pr-2 text-zinc-400">{exp.desc}</span>
-                 <div className="flex items-center gap-3">
-                     <span className="font-mono text-zinc-300">${exp.amount}</span>
-                     <button onClick={() => remove(exp.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300"><Trash2 size={12} /></button>
-                 </div>
-             </div>
-         ))}
+
+      {/* Expense List */}
+      <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+        {expenses.length === 0 ? (
+          <div className="text-center py-8 text-xs text-zinc-600">
+            No expenses yet. Select a category and add one!
+          </div>
+        ) : (
+          expenses.map(exp => (
+            <div 
+              key={exp.id} 
+              className={`flex justify-between items-center group py-3 px-3 rounded-lg transition-all ${getCategoryBgColor(exp.category)}`}
+            >
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border whitespace-nowrap ${getCategoryColor(exp.category)}`}>
+                  {getCategoryLabel(exp.category)}
+                </div>
+                <span className="text-xs text-zinc-300 truncate">
+                  {exp.desc}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 ml-2">
+                <span className="font-mono text-zinc-300 text-xs whitespace-nowrap">${exp.amount.toFixed(2)}</span>
+                <button 
+                  onClick={() => remove(exp.id)} 
+                  className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-all"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
