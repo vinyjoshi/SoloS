@@ -12,6 +12,7 @@
     "test:payment": "echo 'Testing payment integration... Open http://localhost:5173 and follow TESTING_CHECKLIST.md'"
   },
   "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.3",
     "@paypal/react-paypal-js": "^8.9.2",
     "@vercel/analytics": "^1.6.1",
     "firebase": "^10.8.0",
