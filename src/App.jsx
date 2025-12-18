@@ -140,7 +140,7 @@ const LoginPage = ({ onLogin, onDemoMode }) => (
 
 // --- COMPONENT: PRICING MODAL ---
 const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier }) => {
-  const [isIndia, setIsIndia] = useState(false);
+  const [isIndia, setIsIndia] = useState(true);
   const [isLoadingGeo, setIsLoadingGeo] = useState(true);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
 
@@ -161,7 +161,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
       } catch (error) {
         console.error('GeoIP Detection failed:', error);
         // Default to India on error
-        setIsIndia(false);
+        setIsIndia(true);
       } finally {
         setIsLoadingGeo(false);
       }
