@@ -777,6 +777,50 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
     return () => unsubscribe();
   }, [user, isOpen, appId, db]);
 
+  useEffect(() => {
+    if (!openMenuId) return;
+
+    const positionMenu = () => {
+      const menuElement = document.getElementById(`menu-${openMenuId}`);
+      const triggerButton = document.querySelector(`button[data-menu-trigger="${openMenuId}"]`);
+      
+      if (!menuElement || !triggerButton) return;
+
+      const triggerRect = triggerButton.getBoundingClientRect();
+      const menuWidth = 192; // w-48 = 12rem = 192px
+      const menuHeight = menuElement.offsetHeight;
+      const padding = 16;
+
+      // Calculate position
+      let left = triggerRect.left - menuWidth - padding; // Open to the LEFT
+      let top = triggerRect.top;
+
+      // If menu goes off-screen left, flip to right
+      if (left < padding) {
+        left = triggerRect.right + padding;
+      }
+
+      // Prevent menu from going off bottom
+      if (top + menuHeight > window.innerHeight - padding) {
+        top = window.innerHeight - menuHeight - padding;
+      }
+
+      // Prevent menu from going off top
+      if (top < padding) {
+        top = padding;
+      }
+
+      menuElement.style.left = `${left}px`;
+      menuElement.style.top = `${top}px`;
+    };
+
+    // Position on mount and on window resize
+    positionMenu();
+    window.addEventListener('resize', positionMenu);
+    
+    return () => window.removeEventListener('resize', positionMenu);
+  }, [openMenuId]);
+
   const handleCreateDoc = async (category) => {
     // --- LIMIT CHECK ---
     if (userTier === 'free') {
@@ -812,11 +856,18 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
   };
 
   const handleDeleteDoc = async (docId) => {
-    if (window.confirm('Delete this document forever?')) {
-      try {
-        await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId));
-        setOpenMenuId(null);
-      } catch (err) { console.error("Error removing document: ", err); }
+    const confirmed = window.confirm('Delete this document permanently?');
+    if (!confirmed) return;
+
+    try {
+      await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId));
+      
+      // Close menu
+      setOpenMenuId(null);
+      
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Failed to delete document. Please try again.');
     }
   };
 
@@ -828,12 +879,36 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
       } catch (err) { console.error(err); }
   };
 
-  const handleSoftDelete = async (docId) => {
+  const handleMoveToTrash = async (docId) => {
+    const confirmed = window.confirm('Move to Trash?');
+    if (!confirmed) return;
+
     try {
       const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId);
-      await updateDoc(docRef, { category: 'trash', updatedAt: serverTimestamp() });
+      await updateDoc(docRef, { 
+        category: 'trash',
+        updatedAt: serverTimestamp()
+      });
+      
       setOpenMenuId(null);
-    } catch (err) { console.error(err); }
+      
+      // Show success toast
+      const toast = document.createElement('div');
+      toast.className = 'fixed top-20 right-6 bg-emerald-500 text-white px-6 py-4 rounded-xl font-bold shadow-2xl z-[10000] animate-in slide-in-from-right duration-300';
+      toast.innerHTML = `
+        <div class="flex items-center gap-3">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          <span>Document moved to trash</span>
+        </div>
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    } catch (error) {
+      console.error('Error moving to trash:', error);
+      alert('Failed to move document to trash. Please try again.');
+    }
   };
 
   const renderDocList = (category) => {
@@ -848,84 +923,121 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
         {categoryDocs.map(doc => (
           <div 
             key={doc.id}
-            // REMOVED overflow-hidden to allow dropdowns to pop out
             className="relative w-full flex items-center justify-between bg-zinc-800/30 border border-white/5 rounded-lg hover:bg-zinc-800 hover:border-white/10 transition-all text-left group"
           >
             {/* Main Click Area */}
             <button 
-                type="button"
-                onClick={() => setSelectedDoc(doc)}
-                className="flex-1 min-w-0 p-3 text-left z-0"
+              type="button"
+              onClick={() => setSelectedDoc(doc)}
+              className="flex-1 min-w-0 p-3 text-left z-0"
             >
-              <div className={`text-sm font-medium truncate ${category === 'trash' ? 'text-zinc-500 line-through' : 'text-zinc-300 group-hover:text-white'}`}>{doc.title || "Untitled"}</div>
+              <div className={`text-sm font-medium truncate ${category === 'trash' ? 'text-zinc-500 line-through' : 'text-zinc-300 group-hover:text-white'}`}>
+                {doc.title || "Untitled"}
+              </div>
               <div className="flex items-center gap-2 mt-1">
-                 {doc.tags && doc.tags.length > 0 && (
-                    <div className="flex gap-1">
-                      {doc.tags.map((tag, i) => (
-                        <span key={i} className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono">{tag}</span>
-                      ))}
-                    </div>
-                 )}
-                 <div className="text-[9px] text-zinc-600 font-mono">
-                    {doc.updatedAt?.toDate ? doc.updatedAt.toDate().toLocaleDateString() : 'Just now'}
-                 </div>
+                {doc.tags && doc.tags.length > 0 && (
+                  <div className="flex gap-1">
+                    {doc.tags.map((tag, i) => (
+                      <span key={i} className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="text-[9px] text-zinc-600 font-mono">
+                  {doc.updatedAt?.toDate ? doc.updatedAt.toDate().toLocaleDateString() : 'Just now'}
+                </div>
               </div>
             </button>
 
             {/* 3-Dot Menu Trigger */}
             <div className="relative pr-2">
-                <button 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId(openMenuId === doc.id ? null : doc.id);
-                    }}
-                    className="p-2 text-zinc-500 hover:text-white hover:bg-white/10 rounded-md transition-colors"
-                >
-                    <MoreVertical size={16} />
-                </button>
+              <button 
+                data-menu-trigger={doc.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenuId(openMenuId === doc.id ? null : doc.id);
+                }}
+                className="p-2 text-zinc-500 hover:text-white hover:bg-white/10 rounded-md transition-colors z-10"
+              >
+                <MoreVertical size={16} />
+              </button>
 
-                {/* Dropdown Menu */}
-                {openMenuId === doc.id && (
-                    <div 
-                      ref={menuRef}
-                      className="absolute right-0 top-8 w-48 bg-[#18181b] border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden"
-                    >
-                        {category === 'trash' ? (
-                            <>
-                                <button onClick={(e) => { e.stopPropagation(); handleRestore(doc.id); }} className="w-full text-left px-4 py-2.5 text-xs text-emerald-400 hover:bg-white/5 flex items-center gap-2">
-                                    <RotateCcw size={14} /> Restore
-                                </button>
-                                <button onClick={(e) => { e.stopPropagation(); handleDeleteDoc(doc.id); }} className="w-full text-left px-4 py-2.5 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 border-t border-white/5">
-                                    <Trash2 size={14} /> Delete Permanently
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                {['projects','areas','resources','archives'].map(cat => (
-                                    cat !== category && (
-                                        <button key={cat} onClick={(e) => { e.stopPropagation(); handleMoveDoc(doc.id, cat); }} className="w-full text-left px-4 py-2.5 text-xs text-zinc-300 hover:bg-white/5 hover:text-white flex items-center gap-2 capitalize">
-                                            <FolderInput size={14} /> Move to {cat}
-                                        </button>
-                                    )
-                                ))}
-                                <button onClick={(e) => { e.stopPropagation(); handleSoftDelete(doc.id); }} className="w-full text-left px-4 py-2.5 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 border-t border-white/5">
-                                    <Trash2 size={14} /> Move to Trash
-                                </button>
-                            </>
-                        )}
-                    </div>
-                )}
+              {/* Dropdown Menu using Portal */}
+              {openMenuId === doc.id && createPortal(
+                <div 
+                  className="fixed w-48 bg-[#18181b] border border-white/10 rounded-lg shadow-2xl z-[9998] overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+                  style={{
+                    top: '0',
+                    left: '0',
+                    // Will be positioned by JavaScript below
+                  }}
+                  ref={menuRef}
+                  id={`menu-${doc.id}`}
+                >
+                  {category === 'trash' ? (
+                    <>
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          handleRestore(doc.id); 
+                        }} 
+                        className="w-full text-left px-4 py-2.5 text-xs text-emerald-400 hover:bg-white/5 flex items-center gap-2 transition-colors"
+                      >
+                        <RotateCcw size={14} /> Restore
+                      </button>
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          handleDeleteDoc(doc.id); 
+                        }} 
+                        className="w-full text-left px-4 py-2.5 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 border-t border-white/5 transition-colors"
+                      >
+                        <Trash2 size={14} /> Delete Permanently
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {['projects','areas','resources','archives'].map(cat => (
+                        cat !== category && (
+                          <button 
+                            key={cat} 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              handleMoveDoc(doc.id, cat); 
+                            }} 
+                            className="w-full text-left px-4 py-2.5 text-xs text-zinc-300 hover:bg-white/5 hover:text-white flex items-center gap-2 capitalize transition-colors"
+                          >
+                            <FolderInput size={14} /> Move to {cat}
+                          </button>
+                        )
+                      ))}
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          handleMoveToTrash(doc.id); 
+                        }} 
+                        className="w-full text-left px-4 py-2.5 text-xs text-red-400 hover:bg-white/5 flex items-center gap-2 border-t border-white/5 transition-colors"
+                      >
+                        <Trash2 size={14} /> Move to Trash
+                      </button>
+                    </>
+                  )}
+                </div>,
+                document.body
+              )}
             </div>
           </div>
         ))}
+        
         {category !== 'archives' && category !== 'trash' && (
-            <button 
-                type="button"
-                onClick={() => handleCreateDoc(category)}
-                className="w-full py-2.5 mt-2 text-xs font-medium text-zinc-500 hover:text-zinc-300 border border-dashed border-zinc-800 hover:border-zinc-600 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-                <Plus size={14} /> Add {category.slice(0, -1)}
-            </button>
+          <button 
+            type="button"
+            onClick={() => handleCreateDoc(category)}
+            className="w-full py-2.5 mt-2 text-xs font-medium text-zinc-500 hover:text-zinc-300 border border-dashed border-zinc-800 hover:border-zinc-600 rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <Plus size={14} /> Add {category.slice(0, -1)}
+          </button>
         )}
       </div>
     );
@@ -992,12 +1104,45 @@ const DocEditor = ({ docData, onBack, user, appId, db }) => {
   }, [title, body, tags, category, appId, db, user.uid, docData]);
 
   const handleSoftDelete = async () => {
-    try {
+      // Step 1: Check if item is in trash
+      const isInTrash = category === 'trash';  // ✅ Use the state variable!
+      
+      // Step 2: Create confirmation messages
+      let confirmMessage = '';
+      
+      if (isInTrash) {
+        confirmMessage = 'Permanently delete this document forever? This cannot be undone.\nAre you sure?';
+      } else {
+        confirmMessage = 'Move to Trash?\nYou can restore it later from the Trash.';
+      }
+
+      // Step 3: Show confirmation dialog FIRST
+      const confirmed = window.confirm(confirmMessage);
+      if (!confirmed) return;  // User cancelled
+
+      // Step 4: Proceed with deletion/move (only if confirmed)
+      try {
         const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docData.id);
-        await updateDoc(docRef, { category: 'trash' });
+        
+        if (isInTrash) {
+          // PERMANENT DELETE - remove from Firestore entirely
+          await deleteDoc(docRef);
+        } else {
+          // SOFT DELETE - move to trash
+          await updateDoc(docRef, { 
+            category: 'trash',
+            updatedAt: serverTimestamp()
+          });
+        }
+
+        // Step 5: Close the editor and return to list
         onBack();
-    } catch(e) { console.error(e); }
-  }
+        
+      } catch(error) { 
+        console.error('Delete error:', error);
+        alert('Failed to delete document. Please try again.');
+      }
+    };
 
   return (
     <div className="flex flex-col h-full bg-zinc-950">
