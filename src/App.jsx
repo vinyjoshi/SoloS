@@ -887,8 +887,8 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
                 {/* Dropdown Menu */}
                 {openMenuId === doc.id && (
                     <div 
-                        ref={menuRef}
-                        className="absolute right-0 top-8 w-48 bg-[#18181b] border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+                      ref={menuRef}
+                      className="absolute right-0 top-8 w-48 bg-[#18181b] border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden"
                     >
                         {category === 'trash' ? (
                             <>
