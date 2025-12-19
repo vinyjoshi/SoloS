@@ -731,7 +731,15 @@ export default function SoloS() {
                     <Top3Widget top3={dayData.top3} onUpdate={(val) => updateField('top3', val)} />
                 </CollapsibleSection>
                 <CollapsibleSection title="Routine" icon={Clock} defaultOpen={false}>
-                    <RoutineWidget schedule={dayData.schedule} onUpdate={(val) => updateField('schedule', val)} config={routineConfig} setConfig={setRoutineConfig}/>
+                    <RoutineWidget
+                      schedule={dayData.schedule}
+                      onUpdate={(val) => updateField('schedule', val)}
+                      config={routineConfig}
+                      setConfig={setRoutineConfig}
+                      user={user}
+                      db={db}
+                      appId={appId}
+                    />
                 </CollapsibleSection>
                 <CollapsibleSection title="Burn Rate" icon={DollarSign} defaultOpen={false} summary={burnSummary}>
                     <ExpenseWidget expenses={dayData.expenses} onUpdate={(val) => updateField('expenses', val)} />
@@ -1328,7 +1336,7 @@ const TimelineWidget = ({ currentDate, setCurrentDate }) => {
   );
 };
 
-const RoutineWidget = ({ schedule, onUpdate, config, setConfig }) => {
+const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId }) => {
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -1355,13 +1363,17 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig }) => {
     setIsSaving(true);
     try {
       const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
-      await updateDoc(userRef, {
-        routineConfig: {
-          start: newStart,
-          end: newEnd
+      await setDoc(
+        userRef,
+        {
+          routineConfig: {
+            start: newStart,
+            end: newEnd
+          },
+          lastUpdated: serverTimestamp()
         },
-        lastUpdated: serverTimestamp()
-      });
+        { merge: true }
+      );
       setIsSaving(false);
     } catch (error) {
       console.error('Error saving routine config:', error);
@@ -1445,9 +1457,6 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig }) => {
               />
               <span className="text-xs text-zinc-600">:00</span>
             </div>
-          </div>
-          <div className="text-[10px] text-zinc-600 bg-zinc-900/50 p-2 rounded">
-            ℹ️ Changes are saved automatically to your profile
           </div>
         </div>
       ) : (
