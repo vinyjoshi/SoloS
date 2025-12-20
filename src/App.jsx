@@ -295,7 +295,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
               // ===== INDIA - RAZORPAY =====
               <>
                 <button 
-                  onClick={() => handleRazorpayClick('weekly', 0, 'Weekly Grind')}
+                  onClick={() => handleRazorpayClick('weekly', 1, 'Weekly Grind')}
                   disabled={paymentProcessing}
                   className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer disabled:opacity-50"
                 >
