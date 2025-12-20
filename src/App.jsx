@@ -227,20 +227,6 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
       }, { merge: true });
 
       setUserTier('pro');
-      
-      // // Success toast
-      // const toast = document.createElement('div');
-      // toast.className = 'fixed top-20 right-6 bg-emerald-500 text-black px-6 py-4 rounded-xl font-bold shadow-2xl z-[10000] animate-in slide-in-from-right duration-300';
-      // toast.innerHTML = `
-      //   <div class="flex items-center gap-3">
-      //     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-      //       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-      //     </svg>
-      //     <span>Welcome to SolOS Pro! 🚀</span>
-      //   </div>
-      // `;
-      // document.body.appendChild(toast);
-      // setTimeout(() => toast.remove(), 5000);
 
       // Success toast: slide out from header, then disappear back into it
       const headerEl = document.querySelector('[data-header="main"]') || document.body;
@@ -261,7 +247,6 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
             </svg>
           </div>
           <div class="text-sm font-extrabold tracking-tight">Welcome to SolOS Pro</div>
-          <div class="text-xs text-black/70">Unlocked</div>
         </div>
       `;
 
@@ -271,8 +256,6 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
       headerEl.appendChild(toast);
       setTimeout(() => toast.remove(), 3800);
 
-
-      
       setPaymentProcessing(false);
       onClose();
     } catch (error) {
@@ -342,7 +325,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
               // ===== INDIA - RAZORPAY =====
               <>
                 <button 
-                  onClick={() => handleRazorpayClick('weekly', 1, 'Weekly Grind')}
+                  onClick={() => handleRazorpayClick('weekly',99, 'Weekly Grind')}
                   disabled={paymentProcessing}
                   className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer disabled:opacity-50"
                 >
@@ -379,7 +362,6 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
                 >
                   <div>
                     <div className="font-bold text-white group-hover:text-emerald-400">Yearly Commit</div>
-                    <div className="text-xs text-zinc-500">Save ~17%</div>
                   </div>
                   <div className="text-right">
                     <div className="font-mono text-lg font-bold text-white">₹4,999</div>
@@ -394,7 +376,6 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
                 >
                   <div>
                     <div className="font-bold text-white group-hover:text-purple-400">Founder Mode</div>
-                    <div className="text-xs text-zinc-500">One-time payment</div>
                   </div>
                   <div className="text-right">
                     <div className="font-mono text-lg font-bold text-white">₹9,999</div>
@@ -503,7 +484,7 @@ export default function SoloS() {
           if (docSnapshot.exists()) {
             const profileData = docSnapshot.data();
             
-            // ✅ NEW: Check if pro subscription has expired
+            // Check if pro subscription has expired
             if (profileData.tier === 'pro' && profileData.expiresAt) {
               const expirationDate = profileData.expiresAt instanceof Date 
                 ? profileData.expiresAt 
@@ -537,7 +518,7 @@ export default function SoloS() {
             // Load tier
             if (profileData.tier) {
               setUserTier(profileData.tier);
-                // ✅ NEW: Store expiration date for display
+                // Store expiration date for display
                 if (profileData.tier === 'pro' && profileData.expiresAt) {
                   const expDate = profileData.expiresAt instanceof Date 
                     ? profileData.expiresAt 
@@ -680,7 +661,7 @@ export default function SoloS() {
       console.error("Login failed", e);
       if (e.code === 'auth/unauthorized-domain') {
         const domain = window.location.hostname;
-        alert(`⚠️ CONFIGURATION ERROR ⚠️\n\nDomain not authorized.\nAdd ${domain} to Firebase Console -> Auth -> Settings -> Authorized Domains`);
+        alert(`Domain not authorized.\nAdd ${domain} to Firebase Console -> Auth -> Settings -> Authorized Domains`);
       } else if (e.code !== 'auth/popup-closed-by-user') {
         alert(`Login error: ${e.message}`);
       }
@@ -794,7 +775,7 @@ export default function SoloS() {
                                     <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                                     <span className="text-sm font-bold text-emerald-400">SolOS Pro</span>
                                   </div>
-                                  {/* ✅ NEW: Show expiration date */}
+                                  {/* Show expiration date */}
                                   {proExpiresAt && (
                                     <div className="text-[9px] text-zinc-500 ml-4">
                                       Expires: {proExpiresAt.toLocaleDateString('en-US', { 
@@ -880,7 +861,6 @@ export default function SoloS() {
       </main>
 
       <SecondBrainPanel isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} user={user} appId={appId} db={db} setShowPricing={setShowPricing} userTier={userTier} />
-      {/* REMOVED: Analytics component since package is not installed */}
     </div>
   );
 }
@@ -914,7 +894,7 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
     'Health': 'bg-green-500/10 text-green-400 border-green-500/30 hover:border-green-400/60',
     'Family': 'bg-purple-500/10 text-purple-400 border-purple-500/30 hover:border-purple-400/60',
     'Money': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:border-emerald-400/60',
-    'Relationships': 'bg-pink-500/10 text-pink-400 border-pink-500/30 hover:border-pink-400/60',
+    'Love': 'bg-pink-500/10 text-pink-400 border-pink-500/30 hover:border-pink-400/60',
   };
   
   const getAreaColor = (area) => {
@@ -1023,11 +1003,11 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
         }
     }
 
-    // ✅ FIXED: Default to 'Noise' for new projects
+    // Default to 'Noise' for new projects
     const defaultArea =
       category === 'projects' && areaFilter !== 'all' && areaFilter !== NO_AREA_LABEL
         ? areaFilter
-        : NO_AREA_LABEL;  // ✅ Now defaults to 'Noise'
+        : NO_AREA_LABEL;
 
     const newDoc = {
       title: 'Untitled Document',
@@ -1115,7 +1095,7 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
   const renderAreaFilters = () => {
     const projects = docs.filter((d) => d.category === 'projects');
     
-    // ✅ FIXED: Count empty/undefined areas as 'Noise'
+    // Count empty/undefined areas as 'Noise'
     const areaCounts = areaOptions.reduce((acc, area) => {
       if (area === NO_AREA_LABEL) {
         // Count projects with empty or 'Noise' area
@@ -1246,7 +1226,7 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
                             'Health': 'bg-green-500/10 text-green-400',
                             'Family': 'bg-purple-500/10 text-purple-400',
                             'Money': 'bg-emerald-500/10 text-emerald-400',
-                            'Relationships': 'bg-pink-500/10 text-pink-400',
+                            'Love': 'bg-pink-500/10 text-pink-400',
                           };
                           badgeColor = areaColors[tag] || 'bg-orange-500/10 text-orange-400';
                         }
@@ -1456,7 +1436,7 @@ const DocEditor = ({ docData, onBack, user, appId, db, areaOptions, defaultArea 
 
   const handleSoftDelete = async () => {
       // Step 1: Check if item is in trash
-      const isInTrash = category === 'trash';  // ✅ Use the state variable!
+      const isInTrash = category === 'trash';
       
       // Step 2: Create confirmation messages
       let confirmMessage = '';
@@ -1705,7 +1685,7 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
     onUpdate({ ...schedule, [time]: value });
   };
 
-  // NEWLY ADDED: Save routine config to Firestore
+  // Save routine config to Firestore
   const saveRoutineConfig = async (newStart, newEnd) => {
     if (!user) return;
     setIsSaving(true);
