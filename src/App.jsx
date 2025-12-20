@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-// REMOVED: import { Analytics } from "@vercel/analytics/react" 
+import { initializeApp } from 'firebase/app';
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import { handleRazorpayPayment } from '../utils/payment';
+import { AreaFilterBar } from './components/AreaFilterBar';
+
 import { 
   CheckCircle, Circle, Trash2, Plus, DollarSign, Brain, BookOpen, 
   Calendar as CalendarIcon, Target, ChevronLeft, ChevronRight, 
@@ -10,7 +14,6 @@ import {
   FolderInput, RotateCcw, AlertTriangle, Play, Settings, User, MoreVertical, Lock, CreditCard
 } from 'lucide-react';
 
-import { initializeApp } from 'firebase/app';
 import { 
   getAuth, signOut, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInAnonymously
 } from 'firebase/auth';
@@ -18,11 +21,6 @@ import {
 import { 
   getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs 
 } from 'firebase/firestore';
-
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
-
-// --- PAYMENT UTILITY ---
-import { handleRazorpayPayment } from '../utils/payment';
 
 // --- CONFIGURATION ---
 const firebaseConfig = {
@@ -70,7 +68,6 @@ const getStartOfWeek = (date) => {
 };
 
 const emptyDayState = {
-  // Updated to 5 items
   top3: [
     { text: '', done: false }, 
     { text: '', done: false }, 
@@ -112,7 +109,7 @@ const LoginPage = ({ onLogin, onDemoMode }) => (
     </h1>
     
     <p className="text-zinc-400 max-w-md mb-12 text-lg leading-relaxed">
-      The ruthlessly minimalist operating system for founders. 
+      The ruthlessly minimalist Operating System for Beginners. 
       Execution on the left. Strategy on the right.
     </p>
     
@@ -246,7 +243,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
             </svg>
           </div>
-          <div class="text-sm font-extrabold tracking-tight">Welcome to SolOS Pro</div>
+          <div class="text-sm font-extrabold tracking-tight">Welcome to SolOS Pro!</div>
         </div>
       `;
 
@@ -876,7 +873,8 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
   const menuRef = useRef(null);
   const [areaFilter, setAreaFilter] = useState('all');
   const [customAreas, setCustomAreas] = useState([]);
-  const [newAreaName, setNewAreaName] = useState('');
+  const [areaSearchInput, setAreaSearchInput] = useState('');
+  const [areaPills, setAreaPills] = useState([]);
   const areaOptions = [
     ...new Set([
       NO_AREA_LABEL,
@@ -890,11 +888,10 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
   
   const AREA_COLORS = {
     'Noise': 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30 hover:border-zinc-400/60',
-    'Work': 'bg-blue-500/10 text-blue-400 border-blue-500/30 hover:border-blue-400/60',
+    'Career': 'bg-blue-500/10 text-blue-400 border-blue-500/30 hover:border-blue-400/60',
     'Health': 'bg-green-500/10 text-green-400 border-green-500/30 hover:border-green-400/60',
     'Family': 'bg-purple-500/10 text-purple-400 border-purple-500/30 hover:border-purple-400/60',
-    'Money': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:border-emerald-400/60',
-    'Love': 'bg-pink-500/10 text-pink-400 border-pink-500/30 hover:border-pink-400/60',
+    'Finance': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:border-emerald-400/60',
   };
   
   const getAreaColor = (area) => {
@@ -1059,8 +1056,8 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
   };
 
   const handleMoveToTrash = async (docId) => {
-    const confirmed = window.confirm('Move to Trash?');
-    if (!confirmed) return;
+    // const confirmed = window.confirm('Move to Trash?');
+    // if (!confirmed) return;
 
     try {
       const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docId);
@@ -1092,79 +1089,6 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
     await saveCustomAreas(next);
   };
 
-  const renderAreaFilters = () => {
-    const projects = docs.filter((d) => d.category === 'projects');
-    
-    // Count empty/undefined areas as 'Noise'
-    const areaCounts = areaOptions.reduce((acc, area) => {
-      if (area === NO_AREA_LABEL) {
-        // Count projects with empty or 'Noise' area
-        acc[area] = projects.filter((d) => !d.area || d.area.trim() === '' || d.area === NO_AREA_LABEL).length;
-      } else {
-        acc[area] = projects.filter((d) => d.area === area).length;
-      }
-      return acc;
-    }, {});
-
-    return (
-      <div className="space-y-3">
-        <div className="flex flex-wrap gap-2 mb-4">
-          <button
-            type="button"
-            onClick={() => setAreaFilter('all')}
-            className={`py-2 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-colors ${
-              areaFilter === 'all'
-                ? 'bg-white text-black border-white'
-                : 'border-white/10 text-zinc-400 hover:text-white hover:border-white/30'
-            }`}
-          >
-            All ({projects.length})
-          </button>
-          {areaOptions.map((area) => {
-            const colorClass = getAreaColor(area);
-            return (
-              <button
-                key={area}
-                type="button"
-                onClick={() => setAreaFilter(area)}
-                className={`px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-colors ${
-                  areaFilter === area
-                    ? colorClass.replace('hover:border', 'ring-2 ring-offset-1 ring-offset-[#09090b] border')
-                    : colorClass + ' opacity-60 hover:opacity-100'
-                }`}
-              >
-                {area} ({areaCounts[area] || 0})
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={newAreaName}
-            onChange={(e) => setNewAreaName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddArea();
-              }
-            }}
-            placeholder="Add custom area"
-            className="flex-1 bg-zinc-950/50 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-white/30 transition-colors placeholder-zinc-700"
-          />
-          <button
-            type="button"
-            onClick={handleAddArea}
-            className="px-3 py-2 bg-white text-black text-xs font-bold rounded hover:bg-zinc-200 transition-colors"
-          >
-            Add
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   const renderDocList = (category) => {
     const categoryDocs = docs.filter((d) => {
       if (d.category !== category) return false;
@@ -1173,7 +1097,6 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
         const docArea = d.area && d.area.trim() !== '' ? d.area : NO_AREA_LABEL;
         return docArea === areaFilter;
       }
-      
       return true;
     });
 
@@ -1222,11 +1145,10 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
                         if (isAreaTag) {
                           const areaColors = {
                             'Noise': 'bg-zinc-500/10 text-zinc-500',
-                            'Work': 'bg-blue-500/10 text-blue-400',
+                            'Career': 'bg-blue-500/10 text-blue-400',
                             'Health': 'bg-green-500/10 text-green-400',
                             'Family': 'bg-purple-500/10 text-purple-400',
-                            'Money': 'bg-emerald-500/10 text-emerald-400',
-                            'Love': 'bg-pink-500/10 text-pink-400',
+                            'Finance': 'bg-emerald-500/10 text-emerald-400',
                           };
                           badgeColor = areaColors[tag] || 'bg-orange-500/10 text-orange-400';
                         }
@@ -1368,19 +1290,33 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
             appId={appId}
             db={db}
             areaOptions={areaOptions}
-            defaultArea={areaOptions[0] || 'Work'}
+            defaultArea={areaOptions[0] || 'Career'}
           />
 
         ) : (
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-            <CollapsibleSection title="Projects" icon={Briefcase} defaultOpen={true}>{renderDocList('projects')}</CollapsibleSection>
-            <CollapsibleSection title="Areas" icon={Layout} defaultOpen={false}>
-              {renderAreaFilters()}
-            </CollapsibleSection>
-            <CollapsibleSection title="Resources" icon={Globe} defaultOpen={false}>{renderDocList('resources')}</CollapsibleSection>
-            <CollapsibleSection title="Archives" icon={Archive} defaultOpen={false}>{renderDocList('archives')}</CollapsibleSection>
-            <div className="mt-8 pt-4 border-t border-white/5">
+          <div className="flex-1 overflow-y-auto flex flex-col bg-[#09090b]">
+            {/* NEW: AreaFilterBar at top */}
+            <AreaFilterBar
+              areaFilter={areaFilter}
+              setAreaFilter={setAreaFilter}
+              customAreas={customAreas}
+              setCustomAreas={setCustomAreas}
+              user={user}
+              db={db}
+              appId={appId}
+              docs={docs}
+              areaSearchInput={areaSearchInput}
+              setAreaSearchInput={setAreaSearchInput}
+            />
+
+            {/* Projects list scrolls below */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+              <CollapsibleSection title="Projects" icon={Briefcase} defaultOpen={true}>{renderDocList('projects')}</CollapsibleSection>
+              <CollapsibleSection title="Resources" icon={Globe} defaultOpen={false}>{renderDocList('resources')}</CollapsibleSection>
+              <CollapsibleSection title="Archives" icon={Archive} defaultOpen={false}>{renderDocList('archives')}</CollapsibleSection>
+              <div className="mt-8 pt-4 border-t border-white/5">
                 <CollapsibleSection title="Trash" icon={Trash2} defaultOpen={false}>{renderDocList('trash')}</CollapsibleSection>
+              </div>
             </div>
           </div>
         )}
@@ -1435,38 +1371,34 @@ const DocEditor = ({ docData, onBack, user, appId, db, areaOptions, defaultArea 
 
 
   const handleSoftDelete = async () => {
-      // Step 1: Check if item is in trash
+      // Check if item is in trash
       const isInTrash = category === 'trash';
-      
-      // Step 2: Create confirmation messages
+
       let confirmMessage = '';
       
       if (isInTrash) {
-        confirmMessage = 'Permanently delete this document forever? This cannot be undone.\nAre you sure?';
-      } else {
-        confirmMessage = 'Move to Trash?\nYou can restore it later from the Trash.';
+        confirmMessage = 'Delete this document permanently?';
+        // Confirmation dialog FIRST
+        const confirmed = window.confirm(confirmMessage);
+          if (!confirmed) return;  // User cancelled
       }
 
-      // Step 3: Show confirmation dialog FIRST
-      const confirmed = window.confirm(confirmMessage);
-      if (!confirmed) return;  // User cancelled
-
-      // Step 4: Proceed with deletion/move (only if confirmed)
+      // Proceed with deletion/move (only if confirmed)
       try {
         const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docData.id);
         
         if (isInTrash) {
-          // PERMANENT DELETE - remove from Firestore entirely
+          // PERMANENT DELETE
           await deleteDoc(docRef);
         } else {
-          // SOFT DELETE - move to trash
+          // Move to Trash
           await updateDoc(docRef, { 
             category: 'trash',
             updatedAt: serverTimestamp()
           });
         }
 
-        // Step 5: Close the editor and return to list
+        // Close the editor and return to list
         onBack();
         
       } catch(error) { 
@@ -1517,7 +1449,7 @@ const DocEditor = ({ docData, onBack, user, appId, db, areaOptions, defaultArea 
               type="text" 
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="Add tags (e.g. Health, Q1 Goal)..."
+              placeholder="Add tags (comma separated)"
               className="flex-1 bg-transparent text-xs text-emerald-400 placeholder-zinc-700 border-none outline-none font-mono"
             />
         </div>
@@ -1711,23 +1643,26 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
   };
 
   const handleStartChange = (value) => {
-    const newStart = parseInt(value);
-    if (newStart < config.end) {
-      setConfig({ ...config, start: newStart });
-      saveRoutineConfig(newStart, config.end);
-    } else {
-      alert('Start time must be before end time');
-    }
+    const newStart = Number.parseInt(value, 10);
+    if (Number.isNaN(newStart)) return;
+
+    const clampedStart = Math.min(Math.max(newStart, 0), 23);
+    const adjustedEnd = config.end < clampedStart ? clampedStart : config.end;
+
+    setConfig({ ...config, start: clampedStart, end: adjustedEnd });
+    saveRoutineConfig(clampedStart, adjustedEnd);
   };
 
+
   const handleEndChange = (value) => {
-    const newEnd = parseInt(value);
-    if (newEnd > config.start) {
-      setConfig({ ...config, end: newEnd });
-      saveRoutineConfig(config.start, newEnd);
-    } else {
-      alert('End time must be after start time');
-    }
+    const newEnd = Number.parseInt(value, 10);
+    if (Number.isNaN(newEnd)) return;
+
+    const clampedEnd = Math.min(Math.max(newEnd, 0), 23);
+    const adjustedStart = config.start > clampedEnd ? clampedEnd : config.start;
+
+    setConfig({ ...config, start: adjustedStart, end: clampedEnd });
+    saveRoutineConfig(adjustedStart, clampedEnd);
   };
 
   const getCurrentTask = () => {
