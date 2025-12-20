@@ -1485,7 +1485,7 @@ const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = false, 
       </button>
       
       {isOpen && (
-        <div className="border-t border-white/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="border-t border-white/5 px-4 py-0.5 animate-in fade-in slide-in-from-top-2 duration-200">
           {children}
         </div>
       )}
@@ -1596,173 +1596,6 @@ const TimelineWidget = ({ currentDate, setCurrentDate }) => {
   );
 };
 
-// const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId }) => {
-//   const [currentHour, setCurrentHour] = useState(new Date().getHours());
-//   const [isConfiguring, setIsConfiguring] = useState(false);
-//   const [isSaving, setIsSaving] = useState(false);
-  
-//   useEffect(() => {
-//     const interval = setInterval(() => {
-//       setCurrentHour(new Date().getHours());
-//     }, 60000);
-//     return () => clearInterval(interval);
-//   }, []);
-
-//   const hours = Array.from({ length: (config.end - config.start + 1) }, (_, i) => {
-//     const h = i + config.start;
-//     return h < 10 ? `0${h}:00` : `${h}:00`;
-//   });
-
-//   const handleChange = (time, value) => {
-//     onUpdate({ ...schedule, [time]: value });
-//   };
-
-//   // Save routine config to Firestore
-//   const saveRoutineConfig = async (newStart, newEnd) => {
-//     if (!user) return;
-//     setIsSaving(true);
-//     try {
-//       const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
-//       await setDoc(
-//         userRef,
-//         {
-//           routineConfig: {
-//             start: newStart,
-//             end: newEnd
-//           },
-//           lastUpdated: serverTimestamp()
-//         },
-//         { merge: true }
-//       );
-//       setIsSaving(false);
-//     } catch (error) {
-//       console.error('Error saving routine config:', error);
-//       setIsSaving(false);
-//       alert('Failed to save routine config. Please try again.');
-//     }
-//   };
-
-//   const handleStartChange = (value) => {
-//     const newStart = Number.parseInt(value, 10);
-//     if (Number.isNaN(newStart)) return;
-
-//     const clampedStart = Math.min(Math.max(newStart, 0), 23);
-//     const adjustedEnd = config.end < clampedStart ? clampedStart : config.end;
-
-//     setConfig({ ...config, start: clampedStart, end: adjustedEnd });
-//     saveRoutineConfig(clampedStart, adjustedEnd);
-//   };
-
-
-//   const handleEndChange = (value) => {
-//     const newEnd = Number.parseInt(value, 10);
-//     if (Number.isNaN(newEnd)) return;
-
-//     const clampedEnd = Math.min(Math.max(newEnd, 0), 23);
-//     const adjustedStart = config.start > clampedEnd ? clampedEnd : config.start;
-
-//     setConfig({ ...config, start: adjustedStart, end: clampedEnd });
-//     saveRoutineConfig(adjustedStart, clampedEnd);
-//   };
-
-//   const getCurrentTask = () => {
-//     const key = currentHour < 10 ? `0${currentHour}:00` : `${currentHour}:00`;
-//     return schedule[key] || null;
-//   };
-
-//   const currentTask = getCurrentTask();
-
-//   return (
-//     <div>
-//       <div className="flex justify-between items-center mb-4">
-//         <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
-//           {isConfiguring ? 'Configure Day Range' : 'Schedule'}
-//         </div>
-//         <div className="flex items-center gap-2">
-//           {isSaving && <div className="text-[10px] text-emerald-400 animate-pulse">Saving...</div>}
-//           <button 
-//             onClick={() => setIsConfiguring(!isConfiguring)} 
-//             className="text-zinc-500 hover:text-white p-1 transition-colors"
-//           >
-//             <Settings size={14} />
-//           </button>
-//         </div>
-//       </div>
-
-//       {isConfiguring ? (
-//         <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/10 space-y-4 mb-4">
-//           <div className="flex items-center justify-between">
-//             <span className="text-xs text-zinc-400">Start Hour</span>
-//             <div className="flex items-center gap-2">
-//               <input 
-//                 type="number" 
-//                 min="0" 
-//                 max="23" 
-//                 value={config.start} 
-//                 onChange={(e) => handleStartChange(e.target.value)}
-//                 className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
-//                 disabled={isSaving}
-//               />
-//               <span className="text-xs text-zinc-600">:00</span>
-//             </div>
-//           </div>
-//           <div className="flex items-center justify-between">
-//             <span className="text-xs text-zinc-400">End Hour</span>
-//             <div className="flex items-center gap-2">
-//               <input 
-//                 type="number" 
-//                 min="0" 
-//                 max="23" 
-//                 value={config.end} 
-//                 onChange={(e) => handleEndChange(e.target.value)}
-//                 className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
-//                 disabled={isSaving}
-//               />
-//               <span className="text-xs text-zinc-600">:00</span>
-//             </div>
-//           </div>
-//         </div>
-//       ) : (
-//         <div className="flex flex-col gap-1">
-//           {currentTask && (
-//             <div className="mb-4 bg-emerald-900/20 border border-emerald-500/30 rounded-lg p-3 flex items-center gap-3">
-//               <Play size={16} className="text-emerald-400 fill-current" />
-//               <div>
-//                 <div className="text-[10px] font-bold uppercase text-emerald-500 tracking-wider">Now</div>
-//                 <div className="text-sm font-medium text-emerald-100">{currentTask}</div>
-//               </div>
-//             </div>
-//           )}
-
-//           {hours.map((time) => {
-//             const hour = parseInt(time.split(':')[0]);
-//             const isCurrent = hour === currentHour;
-            
-//             return (
-//               <div key={time} className={`group flex items-center transition-colors rounded ${isCurrent ? 'bg-white/5 border border-white/10' : 'hover:bg-white/[0.02]'}`}>
-//                 <div className={`w-14 py-2 px-2 text-xs font-mono transition-colors ${isCurrent ? 'text-white font-bold' : 'text-zinc-600 group-hover:text-zinc-400'}`}>
-//                   {time}
-//                 </div>
-//                 <div className="flex-1">
-//                   <input
-//                     type="text"
-//                     value={schedule[time] || ''}
-//                     onChange={(e) => handleChange(time, e.target.value)}
-//                     placeholder="-"
-//                     className={`w-full bg-transparent border-none outline-none px-2 py-2 text-sm transition-colors rounded ${isCurrent ? 'text-white font-medium' : 'text-zinc-300 placeholder-zinc-800 focus:text-white'}`}
-//                   />
-//                 </div>
-//               </div>
-//             );
-//           })}
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
-
-
-
 /**
  * RoutineWidget - Minimalist Column Layout
  * 
@@ -1844,24 +1677,24 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="text-[15px] uppercase font-bold text-zinc-500 tracking-wider">
-          {isConfiguring ? 'Configure Time Range' : 'Schedule'}
+      <div className="flex justify-between items-center">
+        <div className="text-[12px] uppercase font-bold text-zinc-500 tracking-wider py-1">
+          {isConfiguring ? 'Configure Time Range' : ''}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flexitems-center gap-2">
           {isSaving && <div className="text-[10px] text-emerald-400 animate-pulse">Saving...</div>}
           <button 
             onClick={() => setIsConfiguring(!isConfiguring)} 
             className="text-zinc-500 hover:text-white p-1 transition-colors"
           >
-            <Settings size={15} />
+            <Settings size={12} />
           </button>
         </div>
       </div>
 
       {/* Config Section */}
       {isConfiguring && (
-        <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/10 space-y-4 mb-4">
+        <div className="bg-zinc-950/50 px-6 py-1 rounded-lg border border-white/10 space-y-1 mb-2">
           <div className="flex items-center justify-between">
             <span className="text-xs text-zinc-400">Start Hour</span>
             <div className="flex items-center gap-2">
@@ -1887,7 +1720,7 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
                 max="23" 
                 value={config.end} 
                 onChange={(e) => handleEndChange(e.target.value)}
-                className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
+                className="w-16 bg-zinc-900 border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
                 disabled={isSaving}
               />
               <span className="text-xs text-zinc-600">:00</span>
@@ -1900,7 +1733,7 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
       <div className="space-y-0">
         
         {/* Column Headers - Subtle */}
-        <div className="grid grid-cols-[60px_1fr_1fr] px-4 py-2 text-[10px] font-bold text-zinc-600 uppercase tracking-wider mb-2">
+        <div className="grid grid-cols-[60px_1fr_1fr] px-4 text-[12px] font-bold text-zinc-600 uppercase tracking-wider mb-2">
           <div>Hour</div>
           <div className="text-center">00</div>
           <div className="text-center">30</div>
