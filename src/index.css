@@ -8,7 +8,7 @@
 :root {
   /* 2. Apply it globally */
   font-family: 'Inter', sans-serif;
-  line-height: 1.5;
+  line-height: 1.0;
   font-weight: 400;
 
   color-scheme: dark;
