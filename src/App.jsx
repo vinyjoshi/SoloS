@@ -1485,7 +1485,7 @@ const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = false, 
       </button>
       
       {isOpen && (
-        <div className="border-t border-white/5 px-2 py-0.5 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="border-t border-white/5 px-4 py-0.5 animate-in fade-in slide-in-from-top-2 duration-200">
           {children}
         </div>
       )}
@@ -1678,7 +1678,7 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
     <div>
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div className="text-[12px] uppercase font-bold text-zinc-500 tracking-wider">
+        <div className="text-[12px] uppercase font-bold text-zinc-500 tracking-wider py-1">
           {isConfiguring ? 'Configure Time Range' : ''}
         </div>
         <div className="flexitems-center gap-2">
@@ -1694,7 +1694,7 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
 
       {/* Config Section */}
       {isConfiguring && (
-        <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/10 space-y-4 mb-4">
+        <div className="bg-zinc-950/50 px-6 py-1 rounded-lg border border-white/10 space-y-1 mb-2">
           <div className="flex items-center justify-between">
             <span className="text-xs text-zinc-400">Start Hour</span>
             <div className="flex items-center gap-2">
@@ -1720,7 +1720,7 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
                 max="23" 
                 value={config.end} 
                 onChange={(e) => handleEndChange(e.target.value)}
-                className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
+                className="w-16 bg-zinc-900 border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
                 disabled={isSaving}
               />
               <span className="text-xs text-zinc-600">:00</span>
