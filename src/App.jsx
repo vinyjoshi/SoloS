@@ -84,6 +84,22 @@ const emptyDayState = {
   journal: ''
 };
 
+const ensureHeaderToastStyles = () => {
+  if (document.getElementById('header-toast-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'header-toast-styles';
+  style.innerHTML = `
+    @keyframes headerToast {
+      0%   { transform: translate(-50%, -12px); opacity: 0; }
+      12%  { transform: translate(-50%, 0); opacity: 1; }
+      80%  { transform: translate(-50%, 0); opacity: 1; }
+      100% { transform: translate(-50%, -12px); opacity: 0; }
+    }
+  `;
+  document.head.appendChild(style);
+};
+
+
 // --- COMPONENT: LOGIN PAGE ---
 const LoginPage = ({ onLogin, onDemoMode }) => (
   <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center p-6 text-center">
@@ -212,19 +228,50 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
 
       setUserTier('pro');
       
-      // Success toast
+      // // Success toast
+      // const toast = document.createElement('div');
+      // toast.className = 'fixed top-20 right-6 bg-emerald-500 text-black px-6 py-4 rounded-xl font-bold shadow-2xl z-[10000] animate-in slide-in-from-right duration-300';
+      // toast.innerHTML = `
+      //   <div class="flex items-center gap-3">
+      //     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+      //       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+      //     </svg>
+      //     <span>Welcome to SolOS Pro! 🚀</span>
+      //   </div>
+      // `;
+      // document.body.appendChild(toast);
+      // setTimeout(() => toast.remove(), 5000);
+
+      // Success toast: slide out from header, then disappear back into it
+      const headerEl = document.querySelector('[data-header="main"]') || document.body;
+
+      ensureHeaderToastStyles();
       const toast = document.createElement('div');
-      toast.className = 'fixed top-20 right-6 bg-emerald-500 text-black px-6 py-4 rounded-xl font-bold shadow-2xl z-[10000] animate-in slide-in-from-right duration-300';
+      toast.className =
+        'absolute left-1/2 -translate-x-1/2 top-full mt-2 z-[10000] ' +
+        'max-w-[92vw] w-[360px] bg-emerald-500 text-black px-4 py-3 rounded-2xl ' +
+        'shadow-[0_18px_40px_-18px_rgba(16,185,129,0.7)] border border-emerald-300/50 ' +
+        'backdrop-blur';
+
       toast.innerHTML = `
         <div class="flex items-center gap-3">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-          </svg>
-          <span>Welcome to SolOS Pro! 🚀</span>
+          <div class="h-8 w-8 rounded-full bg-black/10 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <div class="text-sm font-extrabold tracking-tight">Welcome to SolOS Pro</div>
+          <div class="text-xs text-black/70">Unlocked</div>
         </div>
       `;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 5000);
+
+      // animation class applied via inline style
+      toast.style.animation = 'headerToast 3.6s ease forwards';
+
+      headerEl.appendChild(toast);
+      setTimeout(() => toast.remove(), 3800);
+
+
       
       setPaymentProcessing(false);
       onClose();
@@ -697,7 +744,7 @@ export default function SoloS() {
         />
       )}
 
-      <header ref={headerRef} className="border-b border-white/5 flex justify-center items-center sticky top-0 z-20 bg-[#09090b]/80 backdrop-blur-md">
+      <header ref={headerRef} data-header="main" className="relative overflow-visibleborder-b border-white/5 flex justify-center items-center sticky top-0 z-20 bg-[#09090b]/80 backdrop-blur-md">
         <div className="w-full max-w-5xl px-4 md:px-6 py-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center font-bold text-lg shadow-lg shadow-white/5">
