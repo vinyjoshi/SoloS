@@ -762,8 +762,58 @@ export default function SoloS() {
 const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, userTier }) => {
   const [docs, setDocs] = useState([]);
   const [selectedDoc, setSelectedDoc] = useState(null); 
-  const [openMenuId, setOpenMenuId] = useState(null); 
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const DEFAULT_AREAS = ['Work', 'Health', 'Family', 'Money', 'Love']; 
+  const NO_AREA_LABEL = 'Noise';
   const menuRef = useRef(null);
+  const [areaFilter, setAreaFilter] = useState('all');
+  const [customAreas, setCustomAreas] = useState([]);
+  const [newAreaName, setNewAreaName] = useState('');
+  const areaOptions = [
+    ...new Set([
+      NO_AREA_LABEL,
+      ...DEFAULT_AREAS,
+      ...customAreas,
+      ...docs
+        .filter((d) => d.category === 'projects' && d.area)
+        .map((d) => d.area),
+    ]),
+  ];
+  
+  const AREA_COLORS = {
+    'Noise': 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30 hover:border-zinc-400/60',
+    'Work': 'bg-blue-500/10 text-blue-400 border-blue-500/30 hover:border-blue-400/60',
+    'Health': 'bg-green-500/10 text-green-400 border-green-500/30 hover:border-green-400/60',
+    'Family': 'bg-purple-500/10 text-purple-400 border-purple-500/30 hover:border-purple-400/60',
+    'Money': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:border-emerald-400/60',
+    'Relationships': 'bg-pink-500/10 text-pink-400 border-pink-500/30 hover:border-pink-400/60',
+  };
+  
+  const getAreaColor = (area) => {
+    return AREA_COLORS[area] || 'bg-orange-500/10 text-orange-400 border-orange-500/30 hover:border-orange-400/60';
+  };
+
+  useEffect(() => {
+    if (!user || !isOpen) return;
+    
+    const docsRef = collection(db, 'artifacts', appId, 'users', user.uid, 'docs');
+    const q = query(docsRef, orderBy('updatedAt', 'desc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedDocs = [];
+      snapshot.forEach((doc) => {
+        fetchedDocs.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      setDocs(fetchedDocs);
+    }, (error) => {
+      console.error("Error fetching documents:", error);
+    });
+
+    return () => unsubscribe();
+  }, [user, isOpen, appId, db]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -777,13 +827,18 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
 
   useEffect(() => {
     if (!user || !isOpen) return;
-    const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'docs'), orderBy('updatedAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      setDocs(docsData);
+    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+    const unsubscribe = onSnapshot(profileRef, (snapshot) => {
+      const data = snapshot.data();
+      if (data && Array.isArray(data.customAreas)) {
+        setCustomAreas(data.customAreas);
+      } else {
+        setCustomAreas([]);
+      }
     });
     return () => unsubscribe();
   }, [user, isOpen, appId, db]);
+
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -833,22 +888,30 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
     // --- LIMIT CHECK ---
     if (userTier === 'free') {
         const count = docs.filter(d => d.category === category).length;
-        const limits = { projects: 5, areas: 5, resources: 20 };
+        const limits = { projects: 5, resources: 20 };
         if (limits[category] && count >= limits[category]) {
             setShowPricing(true);
             return;
         }
     }
 
+    // ✅ FIXED: Default to 'Noise' for new projects
+    const defaultArea =
+      category === 'projects' && areaFilter !== 'all' && areaFilter !== NO_AREA_LABEL
+        ? areaFilter
+        : NO_AREA_LABEL;  // ✅ Now defaults to 'Noise'
+
     const newDoc = {
       title: 'Untitled Document',
       body: '',
       category: category,
       tags: [],
+      ...(category === 'projects' ? { area: defaultArea } : {}),
       updatedAt: serverTimestamp(),
       createdAt: serverTimestamp()
     };
-    const docRef = await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'docs'), newDoc);
+
+    const docRef = await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'docs'), newDoc);    
     setSelectedDoc({ id: docRef.id, ...newDoc }); 
   };
 
@@ -900,27 +963,112 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
       
       setOpenMenuId(null);
       
-      // Show success toast
-      const toast = document.createElement('div');
-      toast.className = 'fixed top-20 right-6 bg-emerald-500 text-white px-6 py-4 rounded-xl font-bold shadow-2xl z-[10000] animate-in slide-in-from-right duration-300';
-      toast.innerHTML = `
-        <div class="flex items-center gap-3">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-          </svg>
-          <span>Document moved to trash</span>
-        </div>
-      `;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
     } catch (error) {
       console.error('Error moving to trash:', error);
       alert('Failed to move document to trash. Please try again.');
     }
   };
 
+  const saveCustomAreas = async (areas) => {
+    if (!user) return;
+    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+    await setDoc(profileRef, { customAreas: areas, updatedAt: serverTimestamp() }, { merge: true });
+  };
+
+  const handleAddArea = async () => {
+    const trimmed = newAreaName.trim();
+    if (!trimmed) return;
+    const next = Array.from(new Set([...customAreas, trimmed]));
+    setCustomAreas(next);
+    setNewAreaName('');
+    await saveCustomAreas(next);
+  };
+
+  const renderAreaFilters = () => {
+    const projects = docs.filter((d) => d.category === 'projects');
+    
+    // ✅ FIXED: Count empty/undefined areas as 'Noise'
+    const areaCounts = areaOptions.reduce((acc, area) => {
+      if (area === NO_AREA_LABEL) {
+        // Count projects with empty or 'Noise' area
+        acc[area] = projects.filter((d) => !d.area || d.area.trim() === '' || d.area === NO_AREA_LABEL).length;
+      } else {
+        acc[area] = projects.filter((d) => d.area === area).length;
+      }
+      return acc;
+    }, {});
+
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => setAreaFilter('all')}
+            className={`py-2 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-colors ${
+              areaFilter === 'all'
+                ? 'bg-white text-black border-white'
+                : 'border-white/10 text-zinc-400 hover:text-white hover:border-white/30'
+            }`}
+          >
+            All ({projects.length})
+          </button>
+          {areaOptions.map((area) => {
+            const colorClass = getAreaColor(area);
+            return (
+              <button
+                key={area}
+                type="button"
+                onClick={() => setAreaFilter(area)}
+                className={`px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-colors ${
+                  areaFilter === area
+                    ? colorClass.replace('hover:border', 'ring-2 ring-offset-1 ring-offset-[#09090b] border')
+                    : colorClass + ' opacity-60 hover:opacity-100'
+                }`}
+              >
+                {area} ({areaCounts[area] || 0})
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={newAreaName}
+            onChange={(e) => setNewAreaName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddArea();
+              }
+            }}
+            placeholder="Add custom area"
+            className="flex-1 bg-zinc-950/50 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-white/30 transition-colors placeholder-zinc-700"
+          />
+          <button
+            type="button"
+            onClick={handleAddArea}
+            className="px-3 py-2 bg-white text-black text-xs font-bold rounded hover:bg-zinc-200 transition-colors"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const renderDocList = (category) => {
-    const categoryDocs = docs.filter(d => d.category === category);
+    const categoryDocs = docs.filter((d) => {
+      if (d.category !== category) return false;
+      if (category === 'projects' && areaFilter !== 'all') {
+        // Treat empty/undefined areas as 'Noise' for backward compatibility
+        const docArea = d.area && d.area.trim() !== '' ? d.area : NO_AREA_LABEL;
+        return docArea === areaFilter;
+      }
+      
+      return true;
+    });
+
     return (
       <div className="space-y-2 mt-2 pb-2">
         {categoryDocs.length === 0 && (
@@ -943,15 +1091,51 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
                 {doc.title || "Untitled"}
               </div>
               <div className="flex items-center gap-2 mt-1">
-                {doc.tags && doc.tags.length > 0 && (
-                  <div className="flex gap-1">
-                    {doc.tags.map((tag, i) => (
-                      <span key={i} className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                {(() => {
+                  const docArea = category === 'projects' 
+                    ? (doc.area && doc.area.trim() !== '' ? doc.area : NO_AREA_LABEL)
+                    : null;
+                  
+                  const docTags = [
+                    ...(docArea ? [docArea] : []),
+                    ...(doc.tags || []),
+                  ];
+
+                  if (docTags.length === 0) return null;
+
+                  return (
+                    <div className="flex gap-1">
+                      {docTags.map((tag, i) => {
+                        const isAreaTag = i === 0 && category === 'projects';
+                        
+                        // Get area-specific color if it's an area tag
+                        let badgeColor = 'bg-emerald-500/10 text-emerald-400'; // Default for regular tags
+                        
+                        if (isAreaTag) {
+                          const areaColors = {
+                            'Noise': 'bg-zinc-500/10 text-zinc-500',
+                            'Work': 'bg-blue-500/10 text-blue-400',
+                            'Health': 'bg-green-500/10 text-green-400',
+                            'Family': 'bg-purple-500/10 text-purple-400',
+                            'Money': 'bg-emerald-500/10 text-emerald-400',
+                            'Relationships': 'bg-pink-500/10 text-pink-400',
+                          };
+                          badgeColor = areaColors[tag] || 'bg-orange-500/10 text-orange-400';
+                        }
+                        
+                        return (
+                          <span
+                            key={`${tag}-${i}`}
+                            className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${badgeColor}`}
+                          >
+                            {tag}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
                 <div className="text-[9px] text-zinc-600 font-mono">
                   {doc.updatedAt?.toDate ? doc.updatedAt.toDate().toLocaleDateString() : 'Just now'}
                 </div>
@@ -1006,7 +1190,7 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
                     </>
                   ) : (
                     <>
-                      {['projects','areas','resources','archives'].map(cat => (
+                      {['projects','resources','archives'].map(cat => (
                         cat !== category && (
                           <button 
                             key={cat} 
@@ -1038,7 +1222,7 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
           </div>
         ))}
         
-        {category !== 'archives' && category !== 'trash' && (
+        {category !== 'archives' && category !== 'trash' && category !== 'areas' && (
           <button 
             type="button"
             onClick={() => handleCreateDoc(category)}
@@ -1069,11 +1253,22 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
 
       <div className="flex-1 flex flex-col overflow-hidden bg-[#09090b]">
         {selectedDoc ? (
-          <DocEditor docData={selectedDoc} onBack={() => setSelectedDoc(null)} user={user} appId={appId} db={db} />
+          <DocEditor
+            docData={selectedDoc}
+            onBack={() => setSelectedDoc(null)}
+            user={user}
+            appId={appId}
+            db={db}
+            areaOptions={areaOptions}
+            defaultArea={areaOptions[0] || 'Work'}
+          />
+
         ) : (
           <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
             <CollapsibleSection title="Projects" icon={Briefcase} defaultOpen={true}>{renderDocList('projects')}</CollapsibleSection>
-            <CollapsibleSection title="Areas" icon={Layout} defaultOpen={false}>{renderDocList('areas')}</CollapsibleSection>
+            <CollapsibleSection title="Areas" icon={Layout} defaultOpen={false}>
+              {renderAreaFilters()}
+            </CollapsibleSection>
             <CollapsibleSection title="Resources" icon={Globe} defaultOpen={false}>{renderDocList('resources')}</CollapsibleSection>
             <CollapsibleSection title="Archives" icon={Archive} defaultOpen={false}>{renderDocList('archives')}</CollapsibleSection>
             <div className="mt-8 pt-4 border-t border-white/5">
@@ -1086,30 +1281,50 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
   );
 };
 
-const DocEditor = ({ docData, onBack, user, appId, db }) => {
+const DocEditor = ({ docData, onBack, user, appId, db, areaOptions, defaultArea }) => {
   const [title, setTitle] = useState(docData.title);
   const [body, setBody] = useState(docData.body);
   const [category, setCategory] = useState(docData.category);
   const [tags, setTags] = useState(docData.tags ? docData.tags.join(', ') : '');
   const [saving, setSaving] = useState(false);
   const timeoutRef = useRef(null);
-
+  const NO_AREA_LABEL = 'Noise';
+  const [area, setArea] = useState(
+    docData.area && docData.area.trim() !== '' ? docData.area : NO_AREA_LABEL
+  );
+  
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
     const docTags = docData.tags || [];
     
-    if (title === docData.title && body === docData.body && category === docData.category && JSON.stringify(tagsArray) === JSON.stringify(docTags)) return;
+    if (
+      title === docData.title &&
+      body === docData.body &&
+      category === docData.category &&
+      area === (docData.area || '') &&
+      JSON.stringify(tagsArray) === JSON.stringify(docTags)
+    ) return;
+
 
     setSaving(true);
     timeoutRef.current = setTimeout(async () => {
       const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'docs', docData.id);
-      await updateDoc(docRef, { title, body, category, tags: tagsArray, updatedAt: serverTimestamp() });
+      await updateDoc(docRef, {
+        title,
+        body,
+        category,
+        area,
+        tags: tagsArray,
+        updatedAt: serverTimestamp()
+      });
+
       setSaving(false);
     }, 1000); 
 
     return () => clearTimeout(timeoutRef.current);
-  }, [title, body, tags, category, appId, db, user.uid, docData]);
+  }, [title, body, tags, category, area, appId, db, user.uid, docData]);
+
 
   const handleSoftDelete = async () => {
       // Step 1: Check if item is in trash
@@ -1160,17 +1375,23 @@ const DocEditor = ({ docData, onBack, user, appId, db }) => {
         </button>
         <div className="flex items-center gap-4">
              <div className="text-[10px] font-mono text-zinc-500 uppercase">{saving ? 'Saving...' : 'Saved'}</div>
-             <select 
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="bg-zinc-800 text-xs text-zinc-300 border border-white/10 rounded px-2 py-1 outline-none focus:border-white/30"
-             >
-                 <option value="projects">Projects</option>
-                 <option value="areas">Areas</option>
-                 <option value="resources">Resources</option>
-                 <option value="archives">Archives</option>
-                 <option value="trash">Trash</option>
-             </select>
+             {category === 'projects' && (
+                <select 
+                  value={area}
+                  onChange={(e) => setArea(e.target.value)}
+                  className="text-xs bg-zinc-800 border border-white/10 rounded px-2 py-1 text-emerald-400 outline-none focus:border-emerald-500/50 transition-colors cursor-pointer hover:bg-zinc-700"
+                >
+                  <option value={NO_AREA_LABEL}>{NO_AREA_LABEL}</option>
+                  {areaOptions
+                    .filter(opt => opt !== NO_AREA_LABEL)
+                    .map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                </select>
+              )}
+                          
              <button onClick={handleSoftDelete} className="text-zinc-600 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
         </div>
       </div>
@@ -1204,7 +1425,6 @@ const DocEditor = ({ docData, onBack, user, appId, db }) => {
 };
 
 // --- SHARED WIDGETS ---
-
 const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = false, summary }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -1614,12 +1834,12 @@ const ExpenseWidget = ({ expenses, onUpdate }) => {
       </div>
 
       {/* Category Selector Buttons */}
-      <div className="grid grid-cols-5 gap-1.5 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-4">
         {CATEGORIES.map(cat => (
           <button
             key={cat.id}
             onClick={() => setSelectedCategory(cat.id)}
-            className={`py-2 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+            className={`py-2.5 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap ${
               selectedCategory === cat.id
                 ? `${cat.color} ring-2 ring-offset-1 ring-offset-[#09090b]`
                 : `${cat.color} hover:ring-1 ring-offset-1 ring-offset-[#09090b] opacity-60 hover:opacity-100`
