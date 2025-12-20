@@ -1663,7 +1663,7 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
       const adjustedEnd = config.end < clampedStart ? clampedStart : config.end;
       setConfig({ ...config, start: clampedStart, end: adjustedEnd });
       saveRoutineConfig(clampedStart, adjustedEnd);
-    }, 3000);
+    }, 2000);
   };
 
   const handleEndChange = (value) => {
@@ -1696,7 +1696,7 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
       const adjustedStart = config.start > clampedEnd ? clampedEnd : config.start;
       setConfig({ ...config, start: adjustedStart, end: clampedEnd });
       saveRoutineConfig(adjustedStart, clampedEnd);
-    }, 3000);
+    }, 2000);
   };
 
   // ===== SCHEDULE CHANGE HANDLER =====
@@ -1800,7 +1800,7 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
       <div className="space-y-0">
         
         {/* Column Headers - Subtle */}
-        <div className="grid grid-cols-[60px_1fr_1fr] px-4 py-1 text-[12px] font-bold text-zinc-600 uppercase tracking-wider">
+        <div className="grid grid-cols-[40px_1fr_1fr] px-4 py-1 text-[12px] font-bold text-zinc-600 uppercase tracking-wider">
           <div>Hour</div>
           <div className="text-center text-[12px]">00</div>
           <div className="text-center text-[12px]">30</div>
@@ -1818,7 +1818,7 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
           return (
             <div 
               key={hour} 
-              className={`grid grid-cols-[60px_1fr_1fr] px-4 py-2 transition-all ${
+              className={`grid grid-cols-[40px_1fr_1fr] px-4 py-2 transition-all ${
                 isCurrent 
                   ? 'border-l-2 border-emerald-500 bg-emerald-900/10' 
                   : 'border-l-2 border-transparent hover:bg-white/[0.02]'
