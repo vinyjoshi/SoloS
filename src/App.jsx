@@ -1596,11 +1596,191 @@ const TimelineWidget = ({ currentDate, setCurrentDate }) => {
   );
 };
 
+// const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId }) => {
+//   const [currentHour, setCurrentHour] = useState(new Date().getHours());
+//   const [isConfiguring, setIsConfiguring] = useState(false);
+//   const [isSaving, setIsSaving] = useState(false);
+  
+//   useEffect(() => {
+//     const interval = setInterval(() => {
+//       setCurrentHour(new Date().getHours());
+//     }, 60000);
+//     return () => clearInterval(interval);
+//   }, []);
+
+//   const hours = Array.from({ length: (config.end - config.start + 1) }, (_, i) => {
+//     const h = i + config.start;
+//     return h < 10 ? `0${h}:00` : `${h}:00`;
+//   });
+
+//   const handleChange = (time, value) => {
+//     onUpdate({ ...schedule, [time]: value });
+//   };
+
+//   // Save routine config to Firestore
+//   const saveRoutineConfig = async (newStart, newEnd) => {
+//     if (!user) return;
+//     setIsSaving(true);
+//     try {
+//       const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+//       await setDoc(
+//         userRef,
+//         {
+//           routineConfig: {
+//             start: newStart,
+//             end: newEnd
+//           },
+//           lastUpdated: serverTimestamp()
+//         },
+//         { merge: true }
+//       );
+//       setIsSaving(false);
+//     } catch (error) {
+//       console.error('Error saving routine config:', error);
+//       setIsSaving(false);
+//       alert('Failed to save routine config. Please try again.');
+//     }
+//   };
+
+//   const handleStartChange = (value) => {
+//     const newStart = Number.parseInt(value, 10);
+//     if (Number.isNaN(newStart)) return;
+
+//     const clampedStart = Math.min(Math.max(newStart, 0), 23);
+//     const adjustedEnd = config.end < clampedStart ? clampedStart : config.end;
+
+//     setConfig({ ...config, start: clampedStart, end: adjustedEnd });
+//     saveRoutineConfig(clampedStart, adjustedEnd);
+//   };
+
+
+//   const handleEndChange = (value) => {
+//     const newEnd = Number.parseInt(value, 10);
+//     if (Number.isNaN(newEnd)) return;
+
+//     const clampedEnd = Math.min(Math.max(newEnd, 0), 23);
+//     const adjustedStart = config.start > clampedEnd ? clampedEnd : config.start;
+
+//     setConfig({ ...config, start: adjustedStart, end: clampedEnd });
+//     saveRoutineConfig(adjustedStart, clampedEnd);
+//   };
+
+//   const getCurrentTask = () => {
+//     const key = currentHour < 10 ? `0${currentHour}:00` : `${currentHour}:00`;
+//     return schedule[key] || null;
+//   };
+
+//   const currentTask = getCurrentTask();
+
+//   return (
+//     <div>
+//       <div className="flex justify-between items-center mb-4">
+//         <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
+//           {isConfiguring ? 'Configure Day Range' : 'Schedule'}
+//         </div>
+//         <div className="flex items-center gap-2">
+//           {isSaving && <div className="text-[10px] text-emerald-400 animate-pulse">Saving...</div>}
+//           <button 
+//             onClick={() => setIsConfiguring(!isConfiguring)} 
+//             className="text-zinc-500 hover:text-white p-1 transition-colors"
+//           >
+//             <Settings size={14} />
+//           </button>
+//         </div>
+//       </div>
+
+//       {isConfiguring ? (
+//         <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/10 space-y-4 mb-4">
+//           <div className="flex items-center justify-between">
+//             <span className="text-xs text-zinc-400">Start Hour</span>
+//             <div className="flex items-center gap-2">
+//               <input 
+//                 type="number" 
+//                 min="0" 
+//                 max="23" 
+//                 value={config.start} 
+//                 onChange={(e) => handleStartChange(e.target.value)}
+//                 className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
+//                 disabled={isSaving}
+//               />
+//               <span className="text-xs text-zinc-600">:00</span>
+//             </div>
+//           </div>
+//           <div className="flex items-center justify-between">
+//             <span className="text-xs text-zinc-400">End Hour</span>
+//             <div className="flex items-center gap-2">
+//               <input 
+//                 type="number" 
+//                 min="0" 
+//                 max="23" 
+//                 value={config.end} 
+//                 onChange={(e) => handleEndChange(e.target.value)}
+//                 className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
+//                 disabled={isSaving}
+//               />
+//               <span className="text-xs text-zinc-600">:00</span>
+//             </div>
+//           </div>
+//         </div>
+//       ) : (
+//         <div className="flex flex-col gap-1">
+//           {currentTask && (
+//             <div className="mb-4 bg-emerald-900/20 border border-emerald-500/30 rounded-lg p-3 flex items-center gap-3">
+//               <Play size={16} className="text-emerald-400 fill-current" />
+//               <div>
+//                 <div className="text-[10px] font-bold uppercase text-emerald-500 tracking-wider">Now</div>
+//                 <div className="text-sm font-medium text-emerald-100">{currentTask}</div>
+//               </div>
+//             </div>
+//           )}
+
+//           {hours.map((time) => {
+//             const hour = parseInt(time.split(':')[0]);
+//             const isCurrent = hour === currentHour;
+            
+//             return (
+//               <div key={time} className={`group flex items-center transition-colors rounded ${isCurrent ? 'bg-white/5 border border-white/10' : 'hover:bg-white/[0.02]'}`}>
+//                 <div className={`w-14 py-2 px-2 text-xs font-mono transition-colors ${isCurrent ? 'text-white font-bold' : 'text-zinc-600 group-hover:text-zinc-400'}`}>
+//                   {time}
+//                 </div>
+//                 <div className="flex-1">
+//                   <input
+//                     type="text"
+//                     value={schedule[time] || ''}
+//                     onChange={(e) => handleChange(time, e.target.value)}
+//                     placeholder="-"
+//                     className={`w-full bg-transparent border-none outline-none px-2 py-2 text-sm transition-colors rounded ${isCurrent ? 'text-white font-medium' : 'text-zinc-300 placeholder-zinc-800 focus:text-white'}`}
+//                   />
+//                 </div>
+//               </div>
+//             );
+//           })}
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+
+
+/**
+ * RoutineWidget - Minimalist Column Layout
+ * 
+ * Features:
+ * - Clean, minimal 3-column design: Hour | :00 | :30
+ * - No borders, no grid lines
+ * - Half-hour scheduling
+ * - Simple number inputs
+ * - Current hour highlight (subtle green left border)
+ * - Static layout (no scrolling)
+ */
+
 const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId }) => {
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Update current hour every minute
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentHour(new Date().getHours());
@@ -1608,16 +1788,35 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
     return () => clearInterval(interval);
   }, []);
 
-  const hours = Array.from({ length: (config.end - config.start + 1) }, (_, i) => {
-    const h = i + config.start;
-    return h < 10 ? `0${h}:00` : `${h}:00`;
-  });
+  // ===== TIME CHANGE HANDLERS =====
+  const handleStartChange = (value) => {
+    const newStart = Number.parseInt(value, 10);
+    if (Number.isNaN(newStart)) return;
 
+    const clampedStart = Math.min(Math.max(newStart, 0), 23);
+    const adjustedEnd = config.end < clampedStart ? clampedStart : config.end;
+
+    setConfig({ ...config, start: clampedStart, end: adjustedEnd });
+    saveRoutineConfig(clampedStart, adjustedEnd);
+  };
+
+  const handleEndChange = (value) => {
+    const newEnd = Number.parseInt(value, 10);
+    if (Number.isNaN(newEnd)) return;
+
+    const clampedEnd = Math.min(Math.max(newEnd, 0), 23);
+    const adjustedStart = config.start > clampedEnd ? clampedEnd : config.start;
+
+    setConfig({ ...config, start: adjustedStart, end: clampedEnd });
+    saveRoutineConfig(adjustedStart, clampedEnd);
+  };
+
+  // ===== SCHEDULE CHANGE HANDLER =====
   const handleChange = (time, value) => {
     onUpdate({ ...schedule, [time]: value });
   };
 
-  // Save routine config to Firestore
+  // ===== FIRESTORE SAVE =====
   const saveRoutineConfig = async (newStart, newEnd) => {
     if (!user) return;
     setIsSaving(true);
@@ -1638,45 +1837,16 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
     } catch (error) {
       console.error('Error saving routine config:', error);
       setIsSaving(false);
-      alert('Failed to save routine config. Please try again.');
     }
   };
 
-  const handleStartChange = (value) => {
-    const newStart = Number.parseInt(value, 10);
-    if (Number.isNaN(newStart)) return;
-
-    const clampedStart = Math.min(Math.max(newStart, 0), 23);
-    const adjustedEnd = config.end < clampedStart ? clampedStart : config.end;
-
-    setConfig({ ...config, start: clampedStart, end: adjustedEnd });
-    saveRoutineConfig(clampedStart, adjustedEnd);
-  };
-
-
-  const handleEndChange = (value) => {
-    const newEnd = Number.parseInt(value, 10);
-    if (Number.isNaN(newEnd)) return;
-
-    const clampedEnd = Math.min(Math.max(newEnd, 0), 23);
-    const adjustedStart = config.start > clampedEnd ? clampedEnd : config.start;
-
-    setConfig({ ...config, start: adjustedStart, end: clampedEnd });
-    saveRoutineConfig(adjustedStart, clampedEnd);
-  };
-
-  const getCurrentTask = () => {
-    const key = currentHour < 10 ? `0${currentHour}:00` : `${currentHour}:00`;
-    return schedule[key] || null;
-  };
-
-  const currentTask = getCurrentTask();
-
+  // ===== RENDER =====
   return (
     <div>
+      {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
-          {isConfiguring ? 'Configure Day Range' : 'Schedule'}
+        <div className="text-[15px] uppercase font-bold text-zinc-500 tracking-wider">
+          {isConfiguring ? 'Configure Time Range' : 'Schedule'}
         </div>
         <div className="flex items-center gap-2">
           {isSaving && <div className="text-[10px] text-emerald-400 animate-pulse">Saving...</div>}
@@ -1684,12 +1854,13 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
             onClick={() => setIsConfiguring(!isConfiguring)} 
             className="text-zinc-500 hover:text-white p-1 transition-colors"
           >
-            <Settings size={14} />
+            <Settings size={15} />
           </button>
         </div>
       </div>
 
-      {isConfiguring ? (
+      {/* Config Section */}
+      {isConfiguring && (
         <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/10 space-y-4 mb-4">
           <div className="flex items-center justify-between">
             <span className="text-xs text-zinc-400">Start Hour</span>
@@ -1706,6 +1877,7 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
               <span className="text-xs text-zinc-600">:00</span>
             </div>
           </div>
+
           <div className="flex items-center justify-between">
             <span className="text-xs text-zinc-400">End Hour</span>
             <div className="flex items-center gap-2">
@@ -1722,41 +1894,71 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
             </div>
           </div>
         </div>
-      ) : (
-        <div className="flex flex-col gap-1">
-          {currentTask && (
-            <div className="mb-4 bg-emerald-900/20 border border-emerald-500/30 rounded-lg p-3 flex items-center gap-3">
-              <Play size={16} className="text-emerald-400 fill-current" />
-              <div>
-                <div className="text-[10px] font-bold uppercase text-emerald-500 tracking-wider">Now</div>
-                <div className="text-sm font-medium text-emerald-100">{currentTask}</div>
-              </div>
-            </div>
-          )}
-
-          {hours.map((time) => {
-            const hour = parseInt(time.split(':')[0]);
-            const isCurrent = hour === currentHour;
-            
-            return (
-              <div key={time} className={`group flex items-center transition-colors rounded ${isCurrent ? 'bg-white/5 border border-white/10' : 'hover:bg-white/[0.02]'}`}>
-                <div className={`w-14 py-2 px-2 text-xs font-mono transition-colors ${isCurrent ? 'text-white font-bold' : 'text-zinc-600 group-hover:text-zinc-400'}`}>
-                  {time}
-                </div>
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={schedule[time] || ''}
-                    onChange={(e) => handleChange(time, e.target.value)}
-                    placeholder="-"
-                    className={`w-full bg-transparent border-none outline-none px-2 py-2 text-sm transition-colors rounded ${isCurrent ? 'text-white font-medium' : 'text-zinc-300 placeholder-zinc-800 focus:text-white'}`}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
       )}
+
+      {/* Schedule - Minimalist Design */}
+      <div className="space-y-0">
+        
+        {/* Column Headers - Subtle */}
+        <div className="grid grid-cols-[60px_1fr_1fr] px-4 py-2 text-[10px] font-bold text-zinc-600 uppercase tracking-wider mb-2">
+          <div>Hour</div>
+          <div className="text-center">00</div>
+          <div className="text-center">30</div>
+        </div>
+
+        {/* Schedule Rows */}
+        {Array.from({ length: config.end - config.start }, (_, i) => {
+          const hour = config.start + i;
+          const hourStr = String(hour).padStart(2, '0');
+          const time00 = `${hourStr}:00`;
+          const time30 = `${hourStr}:30`;
+          
+          const isCurrent = hour === currentHour;
+
+          return (
+            <div 
+              key={hour} 
+              className={`grid grid-cols-[60px_1fr_1fr] px-4 py-2 transition-all ${
+                isCurrent 
+                  ? 'border-l-2 border-emerald-500 bg-emerald-900/10' 
+                  : 'border-l-2 border-transparent hover:bg-white/[0.02]'
+              }`}
+            >
+              
+              {/* Hour Column */}
+              <div className={`text-xs font-mono font-bold ${
+                isCurrent ? 'text-emerald-400' : 'text-zinc-500'
+              }`}>
+                {hourStr}
+              </div>
+
+              {/* :00 Slot */}
+              <input
+                type="text"
+                value={schedule[time00] || ''}
+                onChange={(e) => handleChange(time00, e.target.value)}
+                placeholder=""
+                className="bg-transparent border-none outline-none text-xs text-zinc-300 placeholder-zinc-700 focus:text-zinc-200 text-center transition-colors"
+              />
+
+              {/* :30 Slot */}
+              <input
+                type="text"
+                value={schedule[time30] || ''}
+                onChange={(e) => handleChange(time30, e.target.value)}
+                placeholder=""
+                className="bg-transparent border-none outline-none text-xs text-zinc-300 placeholder-zinc-700 focus:text-zinc-200 text-center transition-colors"
+              />
+
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Info Footer */}
+      <div className="text-[10px] text-zinc-600 mt-4 text-center">
+        {config.start}:00 → {config.end}:00
+      </div>
     </div>
   );
 };
