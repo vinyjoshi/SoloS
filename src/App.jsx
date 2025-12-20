@@ -704,13 +704,11 @@ export default function SoloS() {
           <button 
             onClick={() => signOut(auth)}
             className="text-xs text-emerald-400 hover:text-emerald-300 font-mono transition-colors"
-          >
-            Exit Demo
+          > Exit
           </button>
         </div>
       )}
 
-      {/* FIX: Z-Index 9999 ensures it sits above everything, including the side panel (z-50) */}
       {showPricing && (
         <PricingModal 
             onClose={() => setShowPricing(false)} 
@@ -723,20 +721,19 @@ export default function SoloS() {
       )}
 
       <header ref={headerRef} data-header="main" className="relative overflow-visibleborder-b border-white/5 flex justify-center items-center sticky top-0 z-20 bg-[#09090b]/80 backdrop-blur-md">
-        <div className="w-full max-w-5xl px-4 md:px-6 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center font-bold text-lg shadow-lg shadow-white/5">
-                <img src="/SolOS.png" alt="SolOS Logo" className="w-full h-full object-cover"/>
+        <div className="w-full max-w-5xl px-4 md:px-6 py-1 flex justify-between items-center">
+            <div className="flex items-center gap-1">
+                <div className="w-14 h-13 bg-black text-black rounded-full flex items-center justify-center font-bold text-lg shadow-lg ">
+                <img src="/SolOS.png" alt="SolOS" className="w-full h-full object-cover rounded-full"/>
                 </div>
-                <div className="hidden md:block">
-                  <h1 className="font-bold text-[33px] text-zinc-600 tracking-tight leading-none">
+                {/* <div className="hidden md:block">
+                  <h1 className="font-bold text-[45px] text-zinc-700 tracking-tight leading-none">
                     Sol<span className="text-white">OS</span>
                   </h1>
-                </div>
+                </div> */}
             </div>
-            
             <div className="flex items-center gap-4 md:gap-6">
-                <div className="hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-zinc-500 uppercase">
+                <div className="hidden md:flex items-center gap-1 text-[10px] font-mono font-bold tracking-widest text-zinc-500 uppercase">
                     <div className={`w-1.5 h-1.5 rounded-full ${synced ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></div>
                     {synced ? 'Synced' : 'Saving'}
                 </div>
@@ -1116,7 +1113,7 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
             <button 
               type="button"
               onClick={() => setSelectedDoc(doc)}
-              className="flex-1 min-w-0 p-3 text-left z-0"
+              className="flex-1 min-w-0 p-2.5 text-left z-0"
             >
               <div className={`text-sm font-medium truncate ${category === 'trash' ? 'text-zinc-500 line-through' : 'text-zinc-300 group-hover:text-white'}`}>
                 {doc.title || "Untitled"}
@@ -1156,7 +1153,7 @@ const SecondBrainPanel = ({ isOpen, onClose, user, appId, db, setShowPricing, us
                         return (
                           <span
                             key={`${tag}-${i}`}
-                            className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${badgeColor}`}
+                            className={`text-[12px] px-1.5 py-0.5 rounded font-mono ${badgeColor}`}
                           >
                             {tag}
                           </span>
@@ -1613,6 +1610,20 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
+  // ===== Local state for instant UI feedback =====
+  const [localStart, setLocalStart] = useState(config.start);
+  const [localEnd, setLocalEnd] = useState(config.end);
+  
+  // ===== Debounce timeout refs =====
+  const startTimeoutRef = useRef(null);
+  const endTimeoutRef = useRef(null);
+  
+  // Sync local state with config when config changes
+  useEffect(() => {
+    setLocalStart(config.start);
+    setLocalEnd(config.end);
+  }, [config]);
+  
   // Update current hour every minute
   useEffect(() => {
     const interval = setInterval(() => {
@@ -1623,25 +1634,69 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
 
   // ===== TIME CHANGE HANDLERS =====
   const handleStartChange = (value) => {
+    // Allow empty input
+    if (value === '') {
+      setLocalStart('');
+      // Clear existing timeout
+      if (startTimeoutRef.current) {
+        clearTimeout(startTimeoutRef.current);
+      }
+      return;
+    }
+
     const newStart = Number.parseInt(value, 10);
     if (Number.isNaN(newStart)) return;
 
-    const clampedStart = Math.min(Math.max(newStart, 0), 23);
-    const adjustedEnd = config.end < clampedStart ? clampedStart : config.end;
+    // Clamp value
+    const clampedStart = Math.min(Math.max(newStart, 0), 24);
+    
+    // Update local state immediately (instant visual feedback)
+    setLocalStart(clampedStart);
 
-    setConfig({ ...config, start: clampedStart, end: adjustedEnd });
-    saveRoutineConfig(clampedStart, adjustedEnd);
+    // Clear existing timeout
+    if (startTimeoutRef.current) {
+      clearTimeout(startTimeoutRef.current);
+    }
+
+    // Debounce: save to Firestore after 3 seconds
+    startTimeoutRef.current = setTimeout(() => {
+      const adjustedEnd = config.end < clampedStart ? clampedStart : config.end;
+      setConfig({ ...config, start: clampedStart, end: adjustedEnd });
+      saveRoutineConfig(clampedStart, adjustedEnd);
+    }, 3000);
   };
 
   const handleEndChange = (value) => {
+    // Allow empty input
+    if (value === '') {
+      setLocalEnd('');
+      // Clear existing timeout
+      if (endTimeoutRef.current) {
+        clearTimeout(endTimeoutRef.current);
+      }
+      return;
+    }
+
     const newEnd = Number.parseInt(value, 10);
     if (Number.isNaN(newEnd)) return;
 
-    const clampedEnd = Math.min(Math.max(newEnd, 0), 23);
-    const adjustedStart = config.start > clampedEnd ? clampedEnd : config.start;
+    // Clamp value
+    const clampedEnd = Math.min(Math.max(newEnd, 0), 24);
+    
+    // Update local state immediately (instant visual feedback)
+    setLocalEnd(clampedEnd);
 
-    setConfig({ ...config, start: adjustedStart, end: clampedEnd });
-    saveRoutineConfig(adjustedStart, clampedEnd);
+    // Clear existing timeout
+    if (endTimeoutRef.current) {
+      clearTimeout(endTimeoutRef.current);
+    }
+
+    // Debounce: save to Firestore after 3 seconds
+    endTimeoutRef.current = setTimeout(() => {
+      const adjustedStart = config.start > clampedEnd ? clampedEnd : config.start;
+      setConfig({ ...config, start: adjustedStart, end: clampedEnd });
+      saveRoutineConfig(adjustedStart, clampedEnd);
+    }, 3000);
   };
 
   // ===== SCHEDULE CHANGE HANDLER =====
@@ -1673,57 +1728,69 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
     }
   };
 
+// Clear timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
+      if (endTimeoutRef.current) clearTimeout(endTimeoutRef.current);
+    };
+  }, []);
+
   // ===== RENDER =====
   return (
     <div>
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div className="text-[12px] uppercase font-bold text-zinc-500 tracking-wider py-1">
+        <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
           {isConfiguring ? 'Configure Time Range' : ''}
         </div>
-        <div className="flexitems-center gap-2">
+        <div className="flex items-center gap-1">
           {isSaving && <div className="text-[10px] text-emerald-400 animate-pulse">Saving...</div>}
           <button 
             onClick={() => setIsConfiguring(!isConfiguring)} 
             className="text-zinc-500 hover:text-white p-1 transition-colors"
           >
-            <Settings size={12} />
+            <Settings size={14} />
           </button>
         </div>
       </div>
 
-      {/* Config Section */}
+      {/* Config Section - Debounced Saves */}
       {isConfiguring && (
         <div className="bg-zinc-950/50 px-6 py-1 rounded-lg border border-white/10 space-y-1 mb-2">
+          {/* Start Hour */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-zinc-400">Start Hour</span>
-            <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-zinc-400">Start Hour</span>
+            <div className="flex items-center gap-1">
               <input 
                 type="number" 
                 min="0" 
                 max="23" 
-                value={config.start} 
+                value={localStart} 
                 onChange={(e) => handleStartChange(e.target.value)}
-                className="w-16 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
+                placeholder=""
+                className="w-12 bg-zinc-900 border border-white/10 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-emerald-500/50 transition-colors disabled:opacity-50"
                 disabled={isSaving}
               />
-              <span className="text-xs text-zinc-600">:00</span>
+              <span className="text-xs font-bold text-zinc-500">: 00</span>
             </div>
           </div>
 
+          {/* End Hour */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-zinc-400">End Hour</span>
-            <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-zinc-400">End Hour</span>
+            <div className="flex items-center gap-1">
               <input 
                 type="number" 
                 min="0" 
                 max="23" 
-                value={config.end} 
+                value={localEnd} 
                 onChange={(e) => handleEndChange(e.target.value)}
-                className="w-16 bg-zinc-900 border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-white/30 transition-colors disabled:opacity-50"
+                placeholder=""
+                className="w-12 font-bold bg-zinc-900 border border-white/10 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-emerald-500/50 transition-colors disabled:opacity-50"
                 disabled={isSaving}
               />
-              <span className="text-xs text-zinc-600">:00</span>
+              <span className="text-xs font-bold text-zinc-500">: 00</span>
             </div>
           </div>
         </div>
@@ -1733,10 +1800,10 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
       <div className="space-y-0">
         
         {/* Column Headers - Subtle */}
-        <div className="grid grid-cols-[60px_1fr_1fr] px-4 text-[12px] font-bold text-zinc-600 uppercase tracking-wider mb-2">
+        <div className="grid grid-cols-[60px_1fr_1fr] px-4 py-1 text-[12px] font-bold text-zinc-600 uppercase tracking-wider">
           <div>Hour</div>
-          <div className="text-center">00</div>
-          <div className="text-center">30</div>
+          <div className="text-center text-[12px]">00</div>
+          <div className="text-center text-[12px]">30</div>
         </div>
 
         {/* Schedule Rows */}
@@ -1786,11 +1853,6 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId 
             </div>
           );
         })}
-      </div>
-
-      {/* Info Footer */}
-      <div className="text-[10px] text-zinc-600 mt-4 text-center">
-        {config.start}:00 → {config.end}:00
       </div>
     </div>
   );
