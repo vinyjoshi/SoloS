@@ -173,13 +173,41 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
   const handleSuccessfulPayment = async (plan, response) => {
     setPaymentProcessing(true);
     try {
+      // Calculate expiration date based on plan
+      const now = new Date();
+      let expiresAt = new Date(now);
+      
+      switch(plan) {
+        case 'weekly':
+          expiresAt.setDate(now.getDate() + 7);
+          break;
+        case 'monthly':
+          expiresAt.setMonth(now.getMonth() + 1);
+          break;
+        case 'yearly':
+          expiresAt.setFullYear(now.getFullYear() + 1);
+          break;
+        case 'international':
+          // Set to 2 years from now (effectively 1 + 1 free)
+          expiresAt.setFullYear(now.getFullYear() + 2);
+          break;
+        case 'lifetime':
+          // Set to 100 years from now (effectively lifetime)
+          expiresAt.setFullYear(now.getFullYear() + 100);
+          break;
+        default:
+          expiresAt.setMonth(now.getMonth() + 1); // Default to 1 month
+      }
+      
       const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
       await setDoc(userRef, { 
         tier: 'pro',
         plan: plan,
         paymentId: response.razorpay_payment_id || response.id,
         source: isIndia ? 'razorpay' : 'paypal',
-        lastPayment: serverTimestamp()
+        lastPayment: serverTimestamp(),
+        expiresAt: expiresAt, 
+        purchasedAt: serverTimestamp() 
       }, { merge: true });
 
       setUserTier('pro');
@@ -267,7 +295,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, db, appId, setUserTier 
               // ===== INDIA - RAZORPAY =====
               <>
                 <button 
-                  onClick={() => handleRazorpayClick('weekly', 99, 'Weekly Grind')}
+                  onClick={() => handleRazorpayClick('weekly', 0, 'Weekly Grind')}
                   disabled={paymentProcessing}
                   className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 transition-all text-left flex justify-between items-center group cursor-pointer disabled:opacity-50"
                 >
@@ -401,6 +429,7 @@ export default function SoloS() {
   const [userTier, setUserTier] = useState('free'); // 'free' or 'pro'
   const [headerHeight, setHeaderHeight] = useState(80);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [proExpiresAt, setProExpiresAt] = useState(null);
 
   const profileMenuRef = useRef(null);
   const headerRef = useRef(null);
@@ -423,16 +452,56 @@ export default function SoloS() {
       if (u) {
         // Check for User Tier in Firestore
         const userRef = doc(db, 'artifacts', appId, 'users', u.uid, 'settings', 'profile');
-        const unsubscribeProfile = onSnapshot(userRef, (doc) => {
-          if (doc.exists()) {
-            const profileData = doc.data();
+        const unsubscribeProfile = onSnapshot(userRef, async (docSnapshot) => {
+          if (docSnapshot.exists()) {
+            const profileData = docSnapshot.data();
+            
+            // ✅ NEW: Check if pro subscription has expired
+            if (profileData.tier === 'pro' && profileData.expiresAt) {
+              const expirationDate = profileData.expiresAt instanceof Date 
+                ? profileData.expiresAt 
+                : profileData.expiresAt.toDate();
+              
+              const now = new Date();
+              
+              if (now > expirationDate) {
+                // Subscription expired - downgrade to free
+                console.log('Pro subscription expired. Downgrading to free tier.');
+                
+                try {
+                  await setDoc(userRef, {
+                    tier: 'free',
+                    expiredAt: serverTimestamp(),
+                    previousPlan: profileData.plan || 'unknown'
+                  }, { merge: true });
+                  
+                  setUserTier('free');
+                  
+                  // Show expiration notice
+                  alert('Your SolOS Pro subscription has expired. Please renew to continue using Pro features.');
+                } catch (error) {
+                  console.error('Error downgrading expired user:', error);
+                }
+                
+                return; // Exit early
+              }
+            }
             
             // Load tier
             if (profileData.tier) {
               setUserTier(profileData.tier);
-            }
+                // ✅ NEW: Store expiration date for display
+                if (profileData.tier === 'pro' && profileData.expiresAt) {
+                  const expDate = profileData.expiresAt instanceof Date 
+                    ? profileData.expiresAt 
+                    : profileData.expiresAt.toDate();
+                  setProExpiresAt(expDate);
+                } else {
+                  setProExpiresAt(null);
+                }
+              }
             
-            // NEWLY ADDED: Load routine config
+            // Load routine config
             if (profileData.routineConfig) {
               setRoutineConfig(profileData.routineConfig);
             }
@@ -664,27 +733,39 @@ export default function SoloS() {
                       <div className="absolute top-full right-0 mt-2 w-56 bg-zinc-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
                         
                         {/* Current Plan Display */}
-                        <div className="px-4 py-3 bg-zinc-800/50 border-b border-white/10">
-                          <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Current Plan</div>
-                          <div className="flex items-center gap-2">
-                            {isDemoMode ? (
-                              <>
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                <span className="text-sm font-bold text-emerald-400">Guest Mode</span>
-                              </>
-                            ) : userTier === 'pro' ? (
-                              <>
-                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                <span className="text-sm font-bold text-emerald-400">SolOS Pro</span>
-                              </>
-                            ) : (
-                              <>
-                                <div className="w-2 h-2 rounded-full bg-zinc-600"></div>
-                                <span className="text-sm font-bold text-zinc-400">Free Plan</span>
-                              </>
-                            )}
+                          <div className="px-4 py-3 bg-zinc-800/50 border-b border-white/10">
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Current Plan</div>
+                            <div className="flex items-center gap-2">
+                              {isDemoMode ? (
+                                <>
+                                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                  <span className="text-sm font-bold text-emerald-400">Guest Mode</span>
+                                </>
+                              ) : userTier === 'pro' ? (
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                    <span className="text-sm font-bold text-emerald-400">SolOS Pro</span>
+                                  </div>
+                                  {/* ✅ NEW: Show expiration date */}
+                                  {proExpiresAt && (
+                                    <div className="text-[9px] text-zinc-500 ml-4">
+                                      Expires: {proExpiresAt.toLocaleDateString('en-US', { 
+                                        month: 'short', 
+                                        day: 'numeric', 
+                                        year: 'numeric' 
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="w-2 h-2 rounded-full bg-zinc-600"></div>
+                                  <span className="text-sm font-bold text-zinc-400">Free Plan</span>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
                         
                         {/* Menu Actions */}
                         {!isDemoMode && userTier === 'free' && (
@@ -1944,7 +2025,7 @@ const LandingPage = ({ onLogin }) => (
     <nav className="max-w-7xl mx-auto px-6 py-8 flex justify-between items-center">
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-white rounded flex items-center justify-center font-bold text-black">S</div>
-        <span className="font-bold text-xl tracking-tight">SoloS</span>
+        <span className="font-bold text-xl tracking-tight">SolOS</span>
       </div>
       <button onClick={onLogin} className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Log In</button>
     </nav>
