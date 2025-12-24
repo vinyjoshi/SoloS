@@ -2182,7 +2182,7 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user, db, appId }) => 
   const remove = (id) => onUpdate(expenses.filter(e => e.id !== id));
 
   const getCategoryLabel = (categoryId) => {
-    return allCategories.find(c => c.id === categoryId)?.label || 'Unknown';
+    return allCategories.find(c => c.id === categoryId)?.label || 'Misc';
   };
 
   const getCategoryColor = (categoryId) => {
@@ -2227,77 +2227,78 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user, db, appId }) => 
       <div className="flex justify-between items-center mb-4">
         <span className="text-xs text-zinc-500">Total Burn</span>
         <div className="flex gap-4 text-sm">
-          <span className="font-mono text-white">D: <span className="text-orange-400">${dailyTotal.toFixed(2)}</span></span>
-          <span className="font-mono text-white">M: <span className="text-orange-400">${monthlyTotal.toFixed(2)}</span></span>
+          <span className="font-mono text-white">D: <span className="text-white-400">${dailyTotal.toFixed(2)}</span></span>
+          <span className="font-mono text-white">M: <span className="text-white-400">${monthlyTotal.toFixed(2)}</span></span>
         </div>
       </div>
 
-      {/* Category Selector Buttons - Predefined */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-3">
-        {PREDEFINED_CATEGORIES.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`py-2.5 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap ${
-              selectedCategory === cat.id
-                ? `${cat.color} ring-2 ring-offset-1 ring-offset-[#09090b]`
-                : `${cat.color} hover:ring-1 ring-offset-1 ring-offset-[#09090b] opacity-60 hover:opacity-100`
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Custom Category Input - Full Width */}
-      <div className="mb-3">
-        <div className="flex gap-2 mb-2">
-          <input 
-            type="text" 
-            value={newCustomCategory} 
-            onChange={(e) => setNewCustomCategory(e.target.value)} 
-            onKeyPress={(e) => e.key === 'Enter' && handleAddCustomCategory()}
-            placeholder="Add custom category..."
-            disabled={customCategories.length >= 10 || isSavingCustom}
-            className="flex-1 bg-zinc-950/50 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-white/30 transition-colors placeholder-zinc-700 disabled:opacity-50" 
-          />
-          <button 
-            onClick={handleAddCustomCategory}
-            disabled={!newCustomCategory.trim() || customCategories.length >= 10 || isSavingCustom}
-            className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            Add
-          </button>
-        </div>
-
-        {/* Display Custom Categories as Buttons */}
-        {customCategories.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {customCategories.map(cat => (
-              <div key={cat} className="relative group">
+      <div className="mb-4">
+        <div className="flex flex-wrap gap-2 items-center overflow-x-auto pb-2 custom-scrollbar">
+          {/* All categories (predefined + custom) in one row */}
+          {allCategories.map(cat => (
+            cat.isCustom ? (
+              <div key={cat.id} className="relative group flex-shrink-0">
                 <button
-                  onClick={() => setSelectedCategory(`custom-${cat}`)}
-                  className={`py-2.5 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap ${
-                    selectedCategory === `custom-${cat}`
-                        ? `${getCategoryColor(`custom-${cat}`)} ring-2 ring-offset-1 ring-offset-[#09090b]`
-                        : `${getCategoryColor(`custom-${cat}`)} hover:ring-1 ring-offset-1 ring-offset-[#09090b] opacity-60 hover:opacity-100`
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`py-2 px-3 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap ${
+                    selectedCategory === cat.id
+                      ? `${getCategoryColor(cat.id)} ring-2 ring-offset-1 ring-offset-[#09090b]`
+                      : `${getCategoryColor(cat.id)} opacity-60 hover:opacity-100`
                   }`}
                 >
-                  {cat}
+                  {cat.label}
                 </button>
+
                 <button
-                  onClick={() => handleDeleteCustomCategory(cat)}
+                  onClick={(e) => { e.stopPropagation(); handleDeleteCustomCategory(cat.label); }}
+                  title="Delete category"
                   className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                 >
                   ✕
                 </button>
               </div>
-            ))}
-          </div>
-        )}
+            ) : (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`py-2 px-3 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap flex-shrink-0 ${
+                  selectedCategory === cat.id
+                    ? `${getCategoryColor(cat.id)} ring-2 ring-offset-1 ring-offset-[#09090b]`
+                    : `${getCategoryColor(cat.id)} opacity-60 hover:opacity-100`
+                }`}
+              >
+                {cat.label}
+              </button>
+            )
+          ))}
+
+          {/* Add new category inline */}
+          {customCategories.length < 10 && (
+            <div className="flex gap-1 flex-shrink-0">
+              <input
+                type="text"
+                value={newCustomCategory}
+                onChange={(e) => setNewCustomCategory(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddCustomCategory()}
+                placeholder="+ Add"
+                disabled={isSavingCustom}
+                className="bg-zinc-950/50 border border-dashed border-white/10 rounded-full px-3 py-2 text-xs text-zinc-400 outline-none focus:border-white/30 focus:text-white transition-colors placeholder-zinc-700 disabled:opacity-50 w-24"
+              />
+              {newCustomCategory && (
+                <button
+                  onClick={() => setNewCustomCategory('')}
+                  className="p-1.5 text-zinc-500 hover:text-red-400 transition-colors flex-shrink-0"
+                  title="Clear input"
+                >
+                  ✕
+                </button>
+              )}
+            </div>  
+          )}
+        </div>
 
         {customCategories.length >= 10 && (
-          <div className="text-[10px] text-zinc-500 mb-2">Maximum custom categories reached</div>
+          <div className="text-[10px] text-zinc-500">Max categories reached</div>
         )}
       </div>
 
@@ -2357,7 +2358,7 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user, db, appId }) => 
           
           return (
             <div key={cat.id} className="flex justify-between items-center py-2 px-2 rounded hover:bg-white/5 transition-colors">
-              <div className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border whitespace-nowrap ${getCategoryColor(cat.id)}`}>
+              <div className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border whitespace-nowrap ${getCategoryColor(cat.id)}`}>
                 {cat.label}
               </div>
               <div className="text-[10px] font-mono text-zinc-300 flex gap-3">
