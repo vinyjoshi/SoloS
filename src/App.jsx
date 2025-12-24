@@ -865,9 +865,6 @@ export default function SoloS() {
                       appId={appId}
                     />
                 </CollapsibleSection>
-                {/* <CollapsibleSection title="Burn Rate" icon={DollarSign} defaultOpen={false} summary={burnSummary}> */}
-                    {/* <ExpenseWidget expenses={dayData.expenses} onUpdate={(val) => updateField('expenses', val)} /> */}
-                {/* </CollapsibleSection> */}
                 <CollapsibleSection title="Burn Rate" icon={DollarSign} defaultOpen={false} summary={burnSummary}>
                   <ExpenseWidget 
                     expenses={dayData.expenses} 
@@ -1624,17 +1621,7 @@ const TimelineWidget = ({ currentDate, setCurrentDate }) => {
   );
 };
 
-/**
- * RoutineWidget - Minimalist Column Layout
- * 
- * Features:
- * - Clean, minimal 3-column design: Hour | :00 | :30
- * - No borders, no grid lines
- * - Half-hour scheduling
- * - Simple number inputs
- * - Current hour highlight (subtle green left border)
- * - Static layout (no scrolling)
- */
+/* RoutineWidget - Minimalist Column Layout */
 
 const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId }) => {
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
@@ -2225,10 +2212,10 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user, db, appId }) => 
     <div>
       {/* Total Burn - Daily & Monthly */}
       <div className="flex justify-between items-center mb-4">
-        <span className="text-xs text-zinc-500">Total Burn</span>
+        <span className="font-bold text-xs text-zinc-500">Total Burn</span>
         <div className="flex gap-4 text-sm">
-          <span className="font-mono text-white">D: <span className="text-white-400">${dailyTotal.toFixed(2)}</span></span>
-          <span className="font-mono text-white">M: <span className="text-white-400">${monthlyTotal.toFixed(2)}</span></span>
+          <span className="font-mono text-xs">D: <span className="text-white-400">${dailyTotal.toFixed(2)}</span></span>
+          <span className="font-mono text-xs">M: <span className="text-white-400">${monthlyTotal.toFixed(2)}</span></span>
         </div>
       </div>
 
