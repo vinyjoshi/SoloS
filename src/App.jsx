@@ -2344,7 +2344,7 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user, db, appId }) => 
           if (dailySum === 0 && monthlySum === 0 && !PREDEFINED_CATEGORIES.find(p => p.id === cat.id)) return null;
           
           return (
-            <div key={cat.id} className="flex justify-between items-center py-2 px-2 rounded hover:bg-white/5 transition-colors">
+            <div key={cat.id} className="flex justify-between items-center px-2 rounded hover:bg-white/5 transition-colors">
               <div className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border whitespace-nowrap ${getCategoryColor(cat.id)}`}>
                 {cat.label}
               </div>
