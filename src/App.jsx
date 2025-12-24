@@ -19,7 +19,7 @@ import {
 } from 'firebase/auth';
 
 import { 
-  getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs 
+  getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs, getDoc 
 } from 'firebase/firestore';
 
 // --- CONFIGURATION ---
@@ -475,8 +475,28 @@ export default function SoloS() {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u) {
-        // Check for User Tier in Firestore
         const userRef = doc(db, 'artifacts', appId, 'users', u.uid, 'settings', 'profile');
+        
+        // === NEW: Check if user profile exists ===
+        try {
+          const docSnapshot = await getDoc(userRef);
+          
+          // If profile doesn't exist, create it with initial data
+          if (!docSnapshot.exists()) {
+            await setDoc(userRef, {
+              email: u.email,
+              displayName: u.displayName,
+              photoURL: u.photoURL,
+              uid: u.uid,
+              tier: 'free',
+              createdAt: serverTimestamp()
+            });
+          }
+        } catch (error) {
+          console.error('Error checking/creating user profile:', error);
+        }
+        
+        // === EXISTING: Listen for profile updates ===
         const unsubscribeProfile = onSnapshot(userRef, async (docSnapshot) => {
           if (docSnapshot.exists()) {
             const profileData = docSnapshot.data();
@@ -515,16 +535,16 @@ export default function SoloS() {
             // Load tier
             if (profileData.tier) {
               setUserTier(profileData.tier);
-                // Store expiration date for display
-                if (profileData.tier === 'pro' && profileData.expiresAt) {
-                  const expDate = profileData.expiresAt instanceof Date 
-                    ? profileData.expiresAt 
-                    : profileData.expiresAt.toDate();
-                  setProExpiresAt(expDate);
-                } else {
-                  setProExpiresAt(null);
-                }
+              // Store expiration date for display
+              if (profileData.tier === 'pro' && profileData.expiresAt) {
+                const expDate = profileData.expiresAt instanceof Date 
+                  ? profileData.expiresAt 
+                  : profileData.expiresAt.toDate();
+                setProExpiresAt(expDate);
+              } else {
+                setProExpiresAt(null);
               }
+            }
             
             // Load routine config
             if (profileData.routineConfig) {
@@ -540,6 +560,7 @@ export default function SoloS() {
     });
     return () => unsubscribe();
   }, []);
+
 
   // Measure header height to offset modal below it (especially on mobile)
   useEffect(() => {
@@ -845,8 +866,15 @@ export default function SoloS() {
                     />
                 </CollapsibleSection>
                 <CollapsibleSection title="Burn Rate" icon={DollarSign} defaultOpen={false} summary={burnSummary}>
-                    <ExpenseWidget expenses={dayData.expenses} onUpdate={(val) => updateField('expenses', val)} />
-                </CollapsibleSection>
+                  <ExpenseWidget 
+                    expenses={dayData.expenses} 
+                    onUpdate={(val) => updateField('expenses', val)} 
+                    currentDate={currentDate}
+                    user={user}
+                    db={db}
+                    appId={appId}
+                  />
+              </CollapsibleSection>
                 <CollapsibleSection title="Reflection" icon={BookOpen} defaultOpen={false}>
                     <TextWidget value={dayData.journal} onChange={(val) => updateField('journal', val)} placeholder="Distill today's lessons." minHeight="h-48"/>
                 </CollapsibleSection>
@@ -1593,17 +1621,7 @@ const TimelineWidget = ({ currentDate, setCurrentDate }) => {
   );
 };
 
-/**
- * RoutineWidget - Minimalist Column Layout
- * 
- * Features:
- * - Clean, minimal 3-column design: Hour | :00 | :30
- * - No borders, no grid lines
- * - Half-hour scheduling
- * - Simple number inputs
- * - Current hour highlight (subtle green left border)
- * - Static layout (no scrolling)
- */
+/* RoutineWidget - Minimalist Column Layout */
 
 const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user, db, appId }) => {
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
@@ -1907,22 +1925,225 @@ const Top3Widget = ({ top3, onUpdate }) => {
   );
 };
 
-const ExpenseWidget = ({ expenses, onUpdate }) => {
+const ExpenseWidget = ({ expenses, onUpdate, currentDate, user, db, appId }) => {
   const [desc, setDesc] = useState('');
   const [amount, setAmount] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [customCategories, setCustomCategories] = useState([]);
+  const [newCustomCategory, setNewCustomCategory] = useState('');
+  const [isSavingCustom, setIsSavingCustom] = useState(false);
+  const [monthlyExpenses, setMonthlyExpenses] = useState([]);
+  const [customCategoryColors, setCustomCategoryColors] = useState({});
+
+  const CATEGORY_COLOR_PALETTES = [
+    { id: 'purple', color: 'bg-purple-500/10 text-purple-400 border-purple-500/30', bg: 'bg-purple-500/20 border-l-4 border-purple-500' },
+    { id: 'pink', color: 'bg-pink-500/10 text-pink-400 border-pink-500/30', bg: 'bg-pink-500/20 border-l-4 border-pink-500' },
+    { id: 'indigo', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30', bg: 'bg-indigo-500/20 border-l-4 border-indigo-500' },
+    { id: 'cyan', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30', bg: 'bg-cyan-500/20 border-l-4 border-cyan-500' },
+    { id: 'amber', color: 'bg-amber-500/10 text-amber-400 border-amber-500/30', bg: 'bg-amber-500/20 border-l-4 border-amber-500' },
+    { id: 'lime', color: 'bg-lime-500/10 text-lime-400 border-lime-500/30', bg: 'bg-lime-500/20 border-l-4 border-lime-500' },
+    { id: 'rose', color: 'bg-rose-500/10 text-rose-400 border-rose-500/30', bg: 'bg-rose-500/20 border-l-4 border-rose-500' },
+    { id: 'teal', color: 'bg-teal-500/10 text-teal-400 border-teal-500/30', bg: 'bg-teal-500/20 border-l-4 border-teal-500' },
+  ];
+
+  const getRandomColor = () => {
+    return CATEGORY_COLOR_PALETTES[Math.floor(Math.random() * CATEGORY_COLOR_PALETTES.length)];
+  };
+  
+  // Get today's date key
+  const getTodayKey = () => {
+    const d = new Date(currentDate);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  // Get current month key
+  const getCurrentMonthKey = () => {
+    const d = new Date(currentDate);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  };
+
+  const todayKey = getTodayKey();
+  const monthKey = getCurrentMonthKey();
   
   // Predefined expense categories
-  const CATEGORIES = [
+  const PREDEFINED_CATEGORIES = [
     { id: 'food', label: 'Food', color: 'bg-orange-500/10 text-orange-400 border-orange-500/30' },
     { id: 'transport', label: 'Transport', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
     { id: 'bills', label: 'Bills', color: 'bg-red-500/10 text-red-400 border-red-500/30' },
-    { id: 'home', label: 'Home Essentials', color: 'bg-green-500/10 text-green-400 border-green-500/30' },
-    { id: 'custom', label: 'Custom', color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30' }
+    { id: 'home', label: 'Home Essentials', color: 'bg-green-500/10 text-green-400 border-green-500/30' }
   ];
 
-  const total = expenses.reduce((acc, curr) => acc + curr.amount, 0);
-  
+  // Combine predefined + custom categories
+  const allCategories = [
+    ...PREDEFINED_CATEGORIES,
+    ...customCategories.map(cat => ({
+      id: `custom-${cat}`,
+      label: cat,
+      // color: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+      isCustom: true
+    }))
+  ];
+
+  // Fetch custom categories from Firestore on mount
+  useEffect(() => {
+    if (!user) return;
+    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+    const unsubscribe = onSnapshot(profileRef, (snapshot) => {
+      const data = snapshot.data();
+      if (data && Array.isArray(data.customExpenseCategories)) {
+        setCustomCategories(data.customExpenseCategories);
+      } else {
+        setCustomCategories([]);
+      }
+      if (data && typeof data.customCategoryColors === 'object') {
+        setCustomCategoryColors(data.customCategoryColors);
+      } else {
+        setCustomCategoryColors({});
+      }
+    });
+    return () => unsubscribe();
+  }, [user, db, appId]);
+
+  // Migrate expenses - add dateKey if missing
+  useEffect(() => {
+    if (expenses.length === 0) return;
+    
+    const needsMigration = expenses.some(exp => !exp.dateKey);
+    if (!needsMigration) return;
+
+    const migratedExpenses = expenses.map(exp => {
+      if (exp.dateKey) return exp; // Already has dateKey
+      // Add dateKey (use today's date as default for old expenses)
+      return {
+        ...exp,
+        dateKey: todayKey
+      };
+    });
+
+    // Only update if migration actually needed
+    if (JSON.stringify(migratedExpenses) !== JSON.stringify(expenses)) {
+      onUpdate(migratedExpenses);
+    }
+  }, [expenses, todayKey, onUpdate]);
+
+  // Fetch all expenses for the current month
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchMonthlyExpenses = async () => {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const allMonthExpenses = [];
+
+      // Fetch each day of the month
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayRef = doc(db, 'artifacts', appId, 'users', user.uid, 'days', dateStr);
+        
+        try {
+          const daySnap = await getDoc(dayRef);
+          if (daySnap.exists()) {
+            const dayData = daySnap.data();
+            if (Array.isArray(dayData.expenses)) {
+              allMonthExpenses.push(...dayData.expenses.map(exp => ({
+                ...exp,
+                dateKey: dateStr // Add dateKey if not present
+              })));
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching day ${dateStr}:`, error);
+        }
+      }
+
+      setMonthlyExpenses(allMonthExpenses);
+    };
+
+    fetchMonthlyExpenses();
+  }, [user, currentDate, db, appId]);
+
+  // Save custom categories to Firestore
+  const saveCustomCategories = async (categories) => {
+    if (!user) return;
+    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+    await setDoc(
+      profileRef,
+      { customExpenseCategories: categories, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+  };
+
+  // Save custom category colors to Firestore
+  const saveCustomCategoryColors = async (colors) => {
+    if (!user) return;
+    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+    await setDoc(
+      profileRef,
+      { customCategoryColors: colors, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+  };
+
+  // Add new custom category
+  const handleAddCustomCategory = async () => {
+    const trimmed = newCustomCategory.trim();
+    if (!trimmed) return;
+    if (customCategories.length >= 10) {
+      alert('Maximum 10 custom categories allowed');
+      return;
+    }
+    if (customCategories.includes(trimmed)) {
+      alert('This category already exists');
+      return;
+    }
+
+    setIsSavingCustom(true);
+    const updatedCategories = [...customCategories, trimmed];
+    
+    // Assign random color to this new category
+    const randomColor = getRandomColor();
+    const updatedColors = {
+      ...customCategoryColors,
+      [trimmed]: randomColor.id
+    };
+    
+    setCustomCategories(updatedCategories);
+    setCustomCategoryColors(updatedColors);
+    setNewCustomCategory('');
+    
+    await saveCustomCategories(updatedCategories);
+    await saveCustomCategoryColors(updatedColors);
+    setIsSavingCustom(false);
+  };
+
+  // Delete custom category
+  const handleDeleteCustomCategory = async (categoryToDelete) => {
+    const updatedCategories = customCategories.filter(cat => cat !== categoryToDelete);
+    setCustomCategories(updatedCategories);
+    setSelectedCategory(null);
+    await saveCustomCategories(updatedCategories);
+  };
+
+  // Calculate monthly total for a category
+  const getMonthlyTotal = (categoryId) => {
+    return monthlyExpenses
+      .filter(exp => exp.category === categoryId)
+      .reduce((acc, curr) => acc + curr.amount, 0);
+  };
+
+  // Calculate totals
+  const dailyTotal = expenses
+    .reduce((acc, curr) => acc + curr.amount, 0);
+  const monthlyTotal = monthlyExpenses
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
   const add = () => {
     if (!desc || !amount || !selectedCategory) {
       alert('Please select a category, add description, and amount');
@@ -1935,7 +2156,8 @@ const ExpenseWidget = ({ expenses, onUpdate }) => {
         id: Date.now(), 
         category: selectedCategory,
         desc, 
-        amount: parseFloat(amount) 
+        amount: parseFloat(amount),
+        dateKey: todayKey
       }
     ]);
     
@@ -1947,47 +2169,124 @@ const ExpenseWidget = ({ expenses, onUpdate }) => {
   const remove = (id) => onUpdate(expenses.filter(e => e.id !== id));
 
   const getCategoryLabel = (categoryId) => {
-    return CATEGORIES.find(c => c.id === categoryId)?.label || 'Unknown';
+    return allCategories.find(c => c.id === categoryId)?.label || 'Misc';
   };
 
   const getCategoryColor = (categoryId) => {
-    return CATEGORIES.find(c => c.id === categoryId)?.color || 'bg-zinc-500/10 text-zinc-400';
+    // For custom categories, use the stored color
+    if (categoryId.startsWith('custom-')) {
+      const catLabel = categoryId.replace('custom-', '');
+      const colorId = customCategoryColors[catLabel];
+      if (colorId) {
+        const palette = CATEGORY_COLOR_PALETTES.find(p => p.id === colorId);
+        if (palette) return palette.color;
+      }
+    }
+    return allCategories.find(c => c.id === categoryId)?.color || 'bg-zinc-500/10 text-zinc-400';
   };
 
   const getCategoryBgColor = (categoryId) => {
+    // For custom categories, use the stored color
+    if (categoryId.startsWith('custom-')) {
+      const catLabel = categoryId.replace('custom-', '');
+      const colorId = customCategoryColors[catLabel];
+      if (colorId) {
+        const palette = CATEGORY_COLOR_PALETTES.find(p => p.id === colorId);
+        if (palette) return palette.bg;
+      }
+      // return 'bg-purple-500/20 border-l-4 border-purple-500';
+      return allCategories.find(c => c.id === categoryId)?.color || 'bg-zinc-500/10 text-zinc-400';
+    }
+
     const colorMap = {
       food: 'bg-orange-500/20 border-l-4 border-orange-500',
       transport: 'bg-blue-500/20 border-l-4 border-blue-500',
       bills: 'bg-red-500/20 border-l-4 border-red-500',
       home: 'bg-green-500/20 border-l-4 border-green-500',
-      custom: 'bg-zinc-500/20 border-l-4 border-zinc-500'
     };
+    
     return colorMap[categoryId] || 'bg-zinc-500/20 border-l-4 border-zinc-500';
   };
   
   return (
     <div>
-      {/* Total Burn */}
+      {/* Total Burn - Daily & Monthly */}
       <div className="flex justify-between items-center mb-4">
-        <span className="text-xs text-zinc-500">Total Burn</span>
-        <span className="font-mono text-white text-sm bg-zinc-800 px-2 py-0.5 rounded">${total.toFixed(2)}</span>
+        <span className="font-bold text-xs text-zinc-500">Total Burn</span>
+        <div className="flex gap-4">
+          <span className="font-mono text-[11px]">D: <span className="text-white-600">${dailyTotal.toFixed(2)}</span></span>
+          <span className="font-mono text-[11px]">M: <span className="text-white-200">${monthlyTotal.toFixed(2)}</span></span>
+        </div>
       </div>
 
-      {/* Category Selector Buttons */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-4">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`py-2.5 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap ${
-              selectedCategory === cat.id
-                ? `${cat.color} ring-2 ring-offset-1 ring-offset-[#09090b]`
-                : `${cat.color} hover:ring-1 ring-offset-1 ring-offset-[#09090b] opacity-60 hover:opacity-100`
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
+      <div className="mb-4">
+        <div className="flex flex-wrap gap-2 items-center overflow-x-auto pb-2 custom-scrollbar">
+          {/* All categories (predefined + custom) in one row */}
+          {allCategories.map(cat => (
+            cat.isCustom ? (
+              <div key={cat.id} className="relative group flex-shrink-0">
+                <button
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`py-2 px-3 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap ${
+                    selectedCategory === cat.id
+                      ? `${getCategoryColor(cat.id)} ring-2 ring-offset-1 ring-offset-[#09090b]`
+                      : `${getCategoryColor(cat.id)} opacity-60 hover:opacity-100`
+                  }`}
+                >
+                  {cat.label}
+                </button>
+
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDeleteCustomCategory(cat.label); }}
+                  title="Delete category"
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`py-2 px-3 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap flex-shrink-0 ${
+                  selectedCategory === cat.id
+                    ? `${getCategoryColor(cat.id)} ring-2 ring-offset-1 ring-offset-[#09090b]`
+                    : `${getCategoryColor(cat.id)} opacity-60 hover:opacity-100`
+                }`}
+              >
+                {cat.label}
+              </button>
+            )
+          ))}
+
+          {/* Add new category inline */}
+          {customCategories.length < 10 && (
+            <div className="flex gap-1 flex-shrink-0">
+              <input
+                type="text"
+                value={newCustomCategory}
+                onChange={(e) => setNewCustomCategory(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddCustomCategory()}
+                placeholder="+ Add"
+                disabled={isSavingCustom}
+                className="bg-zinc-950/50 border border-dashed border-white/10 rounded-full px-3 py-2 text-xs text-zinc-400 outline-none focus:border-white/30 focus:text-white transition-colors placeholder-zinc-700 disabled:opacity-50 w-24"
+              />
+              {newCustomCategory && (
+                <button
+                  onClick={() => setNewCustomCategory('')}
+                  className="p-1.5 text-zinc-500 hover:text-red-400 transition-colors flex-shrink-0"
+                  title="Clear input"
+                >
+                  ✕
+                </button>
+              )}
+            </div>  
+          )}
+        </div>
+
+        {customCategories.length >= 10 && (
+          <div className="text-[10px] text-zinc-500">Max categories reached</div>
+        )}
       </div>
 
       {/* Selected Category Indicator */}
@@ -2031,6 +2330,31 @@ const ExpenseWidget = ({ expenses, onUpdate }) => {
         >
           <Plus size={14} />
         </button>
+      </div>
+
+      {/* Category Summary */}
+      <div className="mb-4 space-y-2 bg-zinc-900/30 border border-white/5 rounded-lg p-3">
+        <div className="text-[10px] font-bold uppercase text-zinc-500 tracking-wider mb-2">Category Breakdown</div>
+        {allCategories.map(cat => {
+          const dailySum = expenses
+            .filter(exp => exp.category === cat.id)
+            .reduce((acc, curr) => acc + curr.amount, 0);
+          const monthlySum = getMonthlyTotal(cat.id);
+          // Only show categories that have expenses or are frequently used
+          if (dailySum === 0 && monthlySum === 0 && !PREDEFINED_CATEGORIES.find(p => p.id === cat.id)) return null;
+          
+          return (
+            <div key={cat.id} className="flex justify-between items-center px-2 rounded hover:bg-white/5 transition-colors">
+              <div className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border whitespace-nowrap ${getCategoryColor(cat.id)}`}>
+                {cat.label}
+              </div>
+              <div className="text-[10px] font-mono text-zinc-300 flex gap-3">
+                <span>D: <span className="text-white">${dailySum.toFixed(2)}</span></span>
+                <span>M: <span className="text-white">${monthlySum.toFixed(2)}</span></span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Expense List */}
