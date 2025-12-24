@@ -2213,9 +2213,9 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user, db, appId }) => 
       {/* Total Burn - Daily & Monthly */}
       <div className="flex justify-between items-center mb-4">
         <span className="font-bold text-xs text-zinc-500">Total Burn</span>
-        <div className="flex gap-4 text-sm">
-          <span className="font-mono text-xs">D: <span className="text-white-400">${dailyTotal.toFixed(2)}</span></span>
-          <span className="font-mono text-xs">M: <span className="text-white-400">${monthlyTotal.toFixed(2)}</span></span>
+        <div className="flex gap-4">
+          <span className="font-mono text-[11px]">D: <span className="text-white-600">${dailyTotal.toFixed(2)}</span></span>
+          <span className="font-mono text-[11px]">M: <span className="text-white-200">${monthlyTotal.toFixed(2)}</span></span>
         </div>
       </div>
 
