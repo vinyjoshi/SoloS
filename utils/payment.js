@@ -1,5 +1,5 @@
-// // Utility to load Razorpay SDK
-// This handles BOTH Razorpay and is called from the PricingModal
+// Utility to load Razorpay SDK
+// This handles BOTH Razorpay and is called from the PricingModal.
 
 export const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -18,13 +18,22 @@ export const loadRazorpayScript = () => {
 export const handleRazorpayPayment = async (user, amount, description, onSuccess) => {
   const isLoaded = await loadRazorpayScript();
   if (!isLoaded) {
-    alert('Failed to load Razorpay. Please try again.');
+    // It's better to use a more user-friendly notification system than alert.
+    console.error('Failed to load Razorpay. Please try again.');
+    // Consider showing a toast notification or a message in your UI.
     return;
   }
 
-  // Replace 'rzp_live_your_key_here' with your actual Razorpay key
+  // Fetch the key from an environment variable.
+  const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+  if (!razorpayKey) {
+    console.error('Razorpay key is not configured. Make sure VITE_RAZORPAY_KEY_ID is set in your .env.local file.');
+    // Handle this error appropriately.
+    return;
+  }
+
   const options = {
-    key: 'rzp_live_RtkOY8THFgeHAb', 
+    key: razorpayKey, // Use the key from the environment variable.
     amount: amount * 100, // Amount in paise
     currency: 'INR',
     name: 'SolOS',
@@ -42,8 +51,8 @@ export const handleRazorpayPayment = async (user, amount, description, onSuccess
     modal: {
       ondismiss: function () {
         console.log('Payment cancelled');
-      }
-    }
+      },
+    },
   };
 
   const razorpay = new window.Razorpay(options);
