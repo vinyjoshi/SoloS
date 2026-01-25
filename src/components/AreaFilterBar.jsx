@@ -9,7 +9,7 @@ export const AreaFilterBar = ({
   customAreas,
   setCustomAreas,
   user,
-  db,
+  db, 
   appId,
   docs,
   areaSearchInput,

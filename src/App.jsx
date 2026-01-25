@@ -166,7 +166,7 @@ export default function SoloS() {
   if (!user) return <LoginPage onLogin={handleLogin} onDemoMode={handleDemoMode} />;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-[#09090b] to-black text-zinc-300 font-sans selection:bg-emerald-500/30 overflow-x-hidden">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-[#09090b] to-black text-zinc-300 font-sans selection:bg-emerald-500/30 overflow-x-hidden app-container max-w-5xl mx-auto">
       
       {isDemoMode && (
         <div className="bg-emerald-500/20 border-b border-emerald-500/50 px-4 py-2 flex items-center justify-between">
