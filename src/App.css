@@ -1,0 +1,17 @@
+#root {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      text-align: left; /* Reset text alignment */
+      isolation: isolate;
+    }
+
+/* Utilities for animations used in the app */
+@keyframes fadeIn {
+       from { opacity: 0; }
+       to { opacity: 1; }
+    }
+
+.animate-in {
+        animation: fadeIn 0.2s ease-out;
+        }
