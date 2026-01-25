@@ -4,34 +4,32 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "npm run verify:payment && vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "verify:payment": "node verify-payment-setup.js",
+    "verify:payment": "node verify-payment-setup.cjs",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:payment": "echo 'Testing payment integration... Open http://localhost:5173 and follow TESTING_CHECKLIST.md'"
   },
   "dependencies": {
-    "@paypal/checkout-server-sdk": "^1.0.3",
     "@paypal/react-paypal-js": "^8.9.2",
-    "@vercel/analytics": "^1.6.1",
+    "@tailwindcss/postcss": "^4.1.18",
+    "autoprefixer": "^10.4.23",
     "firebase": "^10.8.0",
     "lucide-react": "^0.344.0",
-    "razorpay": "^2.9.6",
+    "postcss": "^8.5.6",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tailwindcss": "3.4"
   },
   "devDependencies": {
     "@types/react": "^18.2.56",
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.18",
+    "dotenv": "^17.2.3",
     "eslint": "^8.56.0",
     "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
-    "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1",
     "vite": "^5.1.4"
   }
 }
