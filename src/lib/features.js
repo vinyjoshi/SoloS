@@ -1,5 +1,5 @@
 
-import { PLAN_WEIGHT, normalizePlan } from './subscription.js';
+import { PLAN_WEIGHT, normalizePlan } from '../services/paymentService.js';
 
 /**
  * @file Manages feature keys and their minimum required plan weights.

@@ -6,9 +6,9 @@
     *   [ ] Restrict CORS to the application's domain.
     *   [ ] Move Firebase API keys to a `.env` file.
 *   [ ] **Harden Payment Integration:**
-    *   [ ] Implement Server-Side PayPal Verification.
-    *   [ ] Create a Robust Razorpay Webhook with signature verification and idempotent handling.
-    *   [ ] Implement a `listen` Endpoint for Webhooks.
+    *   [x] Implement Server-Side PayPal Verification.
+    *   [x] Create a Robust Razorpay Webhook with signature verification and idempotent handling.
+    *   [x] Implement a `listen` Endpoint for Webhooks.
 *   [ ] **Add Automated Testing:**
     *   [ ] Create a test suite for core functionality.
     *   [ ] Create tests for payment flows.
