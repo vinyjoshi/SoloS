@@ -185,7 +185,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, setUserTier }) => {
               </>
             ) : (
               <PayPalScriptProvider options={{
-                'client-id': 'AcpJ7YJGWMMci3LKX6dzVuub7nhFGXnV9AMYrMjqVGi4Zx1Ea21zEC35XJh9gTOyKYsxRPvGEgh3ehPE',
+                'client-id': import.meta.env.VITE_PAYPAL_CLIENT_ID,
                 currency: 'USD',
                 intent: 'capture',
               }}>

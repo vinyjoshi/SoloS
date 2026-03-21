@@ -1,12 +1,6 @@
-// // Utility to load Razorpay SDK
-// This handles BOTH Razorpay and is called from the PricingModal
-
 export const loadRazorpayScript = () => {
   return new Promise((resolve) => {
-    if (window.Razorpay) {
-      resolve(true);
-      return;
-    }
+    if (window.Razorpay) { resolve(true); return; }
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.onload = () => resolve(true);
@@ -22,28 +16,26 @@ export const handleRazorpayPayment = async (user, amount, description, onSuccess
     return;
   }
 
-  // Replace 'rzp_live_your_key_here' with your actual Razorpay key
+  const key = import.meta.env.VITE_RAZORPAY_KEY;
+  if (!key) {
+    console.error('Razorpay key not configured');
+    alert('Payment configuration error. Please contact support.');
+    return;
+  }
+
   const options = {
-    key: 'rzp_live_RtkOY8THFgeHAb', 
-    amount: amount * 100, // Amount in paise
+    key,
+    amount: amount * 100,
     currency: 'INR',
     name: 'SolOS',
-    description: description,
-    handler: function (response) {
-      onSuccess(response);
-    },
+    description,
+    handler: function (response) { onSuccess(response); },
     prefill: {
       name: user.displayName || 'User',
       email: user.email || '',
     },
-    theme: {
-      color: '#10b981',
-    },
-    modal: {
-      ondismiss: function () {
-        console.log('Payment cancelled');
-      }
-    }
+    theme: { color: '#10b981' },
+    modal: { ondismiss: function () { console.log('Payment cancelled'); } },
   };
 
   const razorpay = new window.Razorpay(options);
