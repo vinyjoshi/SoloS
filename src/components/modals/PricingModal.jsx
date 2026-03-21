@@ -205,21 +205,38 @@ const PricingModal = ({ onClose, headerOffset = 0, user, setUserTier }) => {
                   {!paymentProcessing && (
                     <PayPalButtons
                       style={{ layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' }}
-                      createOrder={(data, actions) =>
-                        actions.order.create({
-                          purchase_units: [{
-                            amount: { currency_code: 'USD', value: '49.00' },
-                            description: 'SolOS Pro International',
-                          }],
-                        })
-                      }
-                      onApprove={(data, actions) =>
-                        actions.order.capture().then((details) => {
-                          handleSuccessfulPayment('international', details);
-                        })
-                      }
+                      createOrder={async () => {
+                        // Create order on server
+                        const response = await fetch('/api/create-paypal-order', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ amount: '49.00', description: 'SolOS Pro International' }),
+                        });
+                        const data = await response.json();
+                        if (!response.ok || !data.orderId) {
+                          throw new Error(data.error || 'Failed to create PayPal order');
+                        }
+                        return data.orderId;
+                      }}
+                      onApprove={async (data) => {
+                        setPaymentProcessing(true);
+                        // Capture order on server
+                        const response = await fetch('/api/capture-paypal-order', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ orderId: data.orderID }),
+                        });
+                        const captureData = await response.json();
+                        if (!response.ok || !captureData.success) {
+                          setPaymentProcessing(false);
+                          alert('Payment capture failed. Please contact support.');
+                          return;
+                        }
+                        handleSuccessfulPayment('international', { id: captureData.paymentId });
+                      }}
                       onError={(err) => {
                         console.error('PayPal Error:', err);
+                        setPaymentProcessing(false);
                         alert('PayPal could not process the payment. Please try again.');
                       }}
                     />
