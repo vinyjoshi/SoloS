@@ -1,8 +1,8 @@
-
 import { useState } from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
-export const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = false, summary }) => {
+const CollapsibleSection = ({ title, icon: IconComponent, children, defaultOpen = false, summary }) => {
+  const Icon = IconComponent;
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -16,8 +16,11 @@ export const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = 
           <span className="font-medium text-zinc-200 text-sm tracking-wide">{title}</span>
         </div>
         <div className="flex items-center gap-3">
-            {!isOpen && summary}
-            {isOpen ? <ChevronUp size={16} className="text-zinc-500"/> : <ChevronDown size={16} className="text-zinc-500" />}
+          {!isOpen && summary}
+          {isOpen
+            ? <ChevronUp size={16} className="text-zinc-500" />
+            : <ChevronDown size={16} className="text-zinc-500" />
+          }
         </div>
       </button>
 
@@ -29,3 +32,5 @@ export const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = 
     </div>
   );
 };
+
+export default CollapsibleSection;
