@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = false, summary }) => {
+const CollapsibleSection = ({ title, icon: IconComponent, children, defaultOpen = false, summary }) => {
+  const Icon = IconComponent;
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (

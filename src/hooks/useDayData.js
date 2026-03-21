@@ -86,7 +86,7 @@ export const useDayData = (user, userTier, currentDate) => {
       }
     };
     fetchMonthlyBurn();
-  }, [user, currentDate, dayData.expenses]);
+  }, [user, currentDate, dateKey, dayData.expenses]);
 
   // --- SAVE ---
   const saveData = async (newData) => {

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import {
   collection, query, orderBy, onSnapshot, addDoc, updateDoc,
-  deleteDoc, doc, setDoc, serverTimestamp
+  deleteDoc, doc, serverTimestamp
 } from 'firebase/firestore';
 import { db, APP_ID } from '../../constants';
 import CollapsibleSection from '../shared/CollapsibleSection';

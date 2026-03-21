@@ -8,7 +8,7 @@ const NO_AREA_LABEL = 'Noise';
 const DocEditor = ({ docData, onBack, user, areaOptions }) => {
   const [title, setTitle] = useState(docData.title);
   const [body, setBody] = useState(docData.body);
-  const [category, setCategory] = useState(docData.category);
+  const [category] = useState(docData.category);
   const [tags, setTags] = useState(docData.tags ? docData.tags.join(', ') : '');
   const [saving, setSaving] = useState(false);
   const [area, setArea] = useState(
