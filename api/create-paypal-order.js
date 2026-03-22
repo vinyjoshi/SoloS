@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     if (!amount) return res.status(400).json({ error: 'Missing amount' });
 
     // Get PayPal access token
-    const authResponse = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
+    const authResponse = await fetch(`${process.env.PAYPAL_BASE_URL || 'https://api-m.paypal.com'}/v1/oauth2/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     }
 
     // Create PayPal order
-    const orderResponse = await fetch('https://api-m.paypal.com/v2/checkout/orders', {
+    const orderResponse = await fetch(`${process.env.PAYPAL_BASE_URL || 'https://api-m.paypal.com'}/v2/checkout/orders`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
