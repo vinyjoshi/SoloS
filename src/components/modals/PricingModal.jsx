@@ -23,7 +23,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, setUserTier }) => {
         if (data.country_code && data.country_code !== 'IN') setIsIndia(false);
       } catch (error) {
         console.error('GeoIP Detection failed:', error);
-        setIsIndia(true);
+        setIsIndia(false);
       } finally {
         setIsLoadingGeo(false);
       }
