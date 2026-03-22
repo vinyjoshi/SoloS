@@ -7,7 +7,7 @@ import { db, APP_ID, ensureHeaderToastStyles } from '../../constants';
 import { handleRazorpayPayment } from '../../../utils/payment';
 
 const PricingModal = ({ onClose, headerOffset = 0, user, setUserTier }) => {
-  const [isIndia, setIsIndia] = useState(false);
+  const [isIndia, setIsIndia] = useState(true);
   const [isLoadingGeo, setIsLoadingGeo] = useState(true);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
 
