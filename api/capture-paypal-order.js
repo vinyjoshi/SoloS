@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     if (!orderId) return res.status(400).json({ error: 'Missing orderId' });
 
     // Get PayPal access token
-    const authResponse = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
+    const authResponse = await fetch(`${process.env.PAYPAL_BASE_URL || 'https://api-m.paypal.com'}/v1/oauth2/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -35,8 +35,7 @@ export default async function handler(req, res) {
 
     // Capture the order
     const captureResponse = await fetch(
-      `https://api-m.paypal.com/v2/checkout/orders/${orderId}/capture`,
-      {
+      `${process.env.PAYPAL_BASE_URL || 'https://api-m.paypal.com'}/v2/checkout/orders/${orderId}/capture`,  {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
