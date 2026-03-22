@@ -147,7 +147,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, setUserTier }) => {
             ) : isIndia ? (
               <>
                 {[
-                  { plan: 'weekly', amount: 1, label: 'Weekly Grind', sub: 'Perfect for sprints', price: '₹99', per: '/ week' },
+                  { plan: 'weekly', amount: 99, label: 'Weekly Grind', sub: 'Perfect for sprints', price: '₹99', per: '/ week' },
                   { plan: 'monthly', amount: 499, label: 'Monthly Focus', sub: 'Standard plan', price: '₹499', per: '/ month', popular: true },
                   { plan: 'yearly', amount: 4999, label: 'Yearly Commit', price: '₹4,999', per: '/ year' },
                 ].map(({ plan, amount, label, sub, price, per, popular }) => (
