@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { doc, setDoc, getDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, collection, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import { db, APP_ID } from '../../constants';
 import { generateDateKey } from '../../utils/dateUtils';
 
@@ -66,26 +66,26 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user }) => {
   useEffect(() => {
     if (!user) return;
     const fetchMonthlyExpenses = async () => {
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const allMonthExpenses = [];
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const dayRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'days', dateStr);
-        try {
-          const daySnap = await getDoc(dayRef);
-          if (daySnap.exists()) {
-            const dayData = daySnap.data();
-            if (Array.isArray(dayData.expenses)) {
-              allMonthExpenses.push(...dayData.expenses.map((exp) => ({ ...exp, dateKey: dateStr })));
-            }
-          }
-        } catch (error) {
-          console.error(`Error fetching day ${dateStr}:`, error);
-        }
+      const currentMonthPrefix = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+      const colRef = collection(db, 'artifacts', APP_ID, 'users', user.uid, 'days');
+
+      const q = query(
+        colRef,
+        where('__name__', '>=', currentMonthPrefix + '-01'),
+        where('__name__', '<=', currentMonthPrefix + '-31')
+      );
+
+      try {
+        const snapshot = await getDocs(q);
+        const allMonthExpenses = [];
+        snapshot.forEach((doc) => {
+          const exps = doc.data().expenses || [];
+          allMonthExpenses.push(...exps.map(exp => ({ ...exp, dateKey: doc.id })));
+        });
+        setMonthlyExpenses(allMonthExpenses);
+      } catch (e) {
+        console.error(e);
       }
-      setMonthlyExpenses(allMonthExpenses);
     };
     fetchMonthlyExpenses();
   }, [user, currentDate]);

@@ -69,9 +69,9 @@ export const useDayData = (user, userTier, currentDate) => {
   useEffect(() => {
     if (!user) return;
     const fetchMonthlyBurn = async () => {
-      const currentMonthPrefix = dateKey.substring(0, 7); // "YYYY-MM"
+      const currentMonthPrefix = dateKey.substring(0, 7);
       const colRef = collection(db, 'artifacts', APP_ID, 'users', user.uid, 'days');
-      
+
       const q = query(
         colRef,
         where('__name__', '>=', currentMonthPrefix + '-01'),
