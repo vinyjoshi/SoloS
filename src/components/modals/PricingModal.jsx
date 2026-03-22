@@ -7,7 +7,7 @@ import { db, APP_ID, ensureHeaderToastStyles } from '../../constants';
 import { handleRazorpayPayment } from '../../../utils/payment';
 
 const PricingModal = ({ onClose, headerOffset = 0, user, setUserTier }) => {
-  const [isIndia, setIsIndia] = useState(true);
+  const [isIndia, setIsIndia] = useState(false);
   const [isLoadingGeo, setIsLoadingGeo] = useState(true);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
 
@@ -23,7 +23,7 @@ const PricingModal = ({ onClose, headerOffset = 0, user, setUserTier }) => {
         if (data.country_code && data.country_code !== 'IN') setIsIndia(false);
       } catch (error) {
         console.error('GeoIP Detection failed:', error);
-        setIsIndia(false);
+        setIsIndia(true);
       } finally {
         setIsLoadingGeo(false);
       }
