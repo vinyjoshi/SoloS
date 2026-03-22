@@ -185,8 +185,8 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user }) => {
       <div className="flex justify-between items-center mb-4">
         <span className="font-bold text-xs text-zinc-500">Total Burn</span>
         <div className="flex gap-4">
-          <span className="font-mono text-[11px]">D: <span className="text-white">${dailyTotal.toFixed(2)}</span></span>
-          <span className="font-mono text-[11px]">M: <span className="text-white">${monthlyTotal.toFixed(2)}</span></span>
+          <span className="font-mono text-[11px]">D: <span className="text-white">₹{dailyTotal.toFixed(2)}</span></span>
+          <span className="font-mono text-[11px]">M: <span className="text-white">₹{monthlyTotal.toFixed(2)}</span></span>
         </div>
       </div>
 
@@ -270,7 +270,7 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user }) => {
         />
         <input
           type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
-          placeholder="$"
+          placeholder="₹"
           className="w-20 bg-zinc-950/50 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-white/30 transition-colors placeholder-zinc-700"
         />
         <button onClick={add} disabled={!selectedCategory} className="p-2 bg-white text-black hover:bg-zinc-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-all">
@@ -291,8 +291,8 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user }) => {
                 {cat.label}
               </div>
               <div className="text-[10px] font-mono text-zinc-300 flex gap-3">
-                <span>D: <span className="text-white">${dailySum.toFixed(2)}</span></span>
-                <span>M: <span className="text-white">${monthlySum.toFixed(2)}</span></span>
+                <span>D: <span className="text-white">₹{dailySum.toFixed(2)}</span></span>
+                <span>M: <span className="text-white">₹{monthlySum.toFixed(2)}</span></span>
               </div>
             </div>
           );
@@ -313,7 +313,7 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user }) => {
                 <span className="text-xs text-zinc-300 truncate">{exp.desc}</span>
               </div>
               <div className="flex items-center gap-3 ml-2">
-                <span className="font-mono text-zinc-300 text-xs whitespace-nowrap">${exp.amount.toFixed(2)}</span>
+                <span className="font-mono text-zinc-300 text-xs whitespace-nowrap">₹{exp.amount.toFixed(2)}</span>
                 <button onClick={() => remove(exp.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-all">
                   <Trash2 size={12} />
                 </button>

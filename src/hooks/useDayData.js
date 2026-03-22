@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, setDoc, onSnapshot, collection, getDocs } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, collection, getDocs, query, where } from 'firebase/firestore';
 import { db, APP_ID, emptyDayState } from '../constants';
 import { generateDateKey, getStartOfCurrentWeek } from '../utils/dateUtils';
 
@@ -69,16 +69,21 @@ export const useDayData = (user, userTier, currentDate) => {
   useEffect(() => {
     if (!user) return;
     const fetchMonthlyBurn = async () => {
+      const currentMonthPrefix = dateKey.substring(0, 7); // "YYYY-MM"
       const colRef = collection(db, 'artifacts', APP_ID, 'users', user.uid, 'days');
+      
+      const q = query(
+        colRef,
+        where('__name__', '>=', currentMonthPrefix + '-01'),
+        where('__name__', '<=', currentMonthPrefix + '-31')
+      );
+
       try {
-        const snapshot = await getDocs(colRef);
+        const snapshot = await getDocs(q);
         let total = 0;
-        const currentMonthPrefix = dateKey.substring(0, 7);
         snapshot.forEach((doc) => {
-          if (doc.id.startsWith(currentMonthPrefix)) {
-            const exps = doc.data().expenses || [];
-            total += exps.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-          }
+          const exps = doc.data().expenses || [];
+          total += exps.reduce((acc, curr) => acc + (curr.amount || 0), 0);
         });
         setMonthlyTotal(total);
       } catch (e) {
@@ -86,7 +91,7 @@ export const useDayData = (user, userTier, currentDate) => {
       }
     };
     fetchMonthlyBurn();
-  }, [user, currentDate, dateKey, dayData.expenses]);
+  }, [user, currentDate, dateKey]);
 
   // --- SAVE ---
   const saveData = async (newData) => {

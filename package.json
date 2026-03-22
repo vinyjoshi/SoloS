@@ -12,12 +12,10 @@
     "test:payment": "echo 'Testing payment integration... Open http://localhost:5173 and follow TESTING_CHECKLIST.md'"
   },
   "dependencies": {
-    "@paypal/checkout-server-sdk": "^1.0.3",
     "@paypal/react-paypal-js": "^8.9.2",
     "@vercel/analytics": "^1.6.1",
     "firebase": "^10.8.0",
     "lucide-react": "^0.344.0",
-    "razorpay": "^2.9.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

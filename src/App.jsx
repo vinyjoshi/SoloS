@@ -84,9 +84,9 @@ export default function SoloS() {
   const dailyBurn = dayData.expenses.reduce((acc, curr) => acc + curr.amount, 0);
   const burnSummary = (
     <div className="flex gap-2 text-[10px] font-mono text-zinc-500">
-      <span>DAY: <span className="text-zinc-300">${dailyBurn.toFixed(0)}</span></span>
+      <span>DAY: <span className="text-zinc-300">₹{dailyBurn.toFixed(0)}</span></span>
       <span className="text-zinc-700">|</span>
-      <span>MO: <span className="text-zinc-300">${monthlyTotal.toFixed(0)}</span></span>
+      <span>MO: <span className="text-zinc-300">₹{monthlyTotal.toFixed(0)}</span></span>
     </div>
   );
 
