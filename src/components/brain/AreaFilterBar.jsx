@@ -195,9 +195,12 @@ export const AreaFilterBar = ({
    */
   useEffect(() => {
     if (filterState.type === 'exact-match') {
-      handlePillClick(filterState.matchedAreaName);
+      const filterValue = filterState.matchedAreaName === 'ALL' ? 'all' : filterState.matchedAreaName;
+      setAreaFilter(filterValue);
+      setAreaSearchInput('');
     }
-  }, [filterState.type, filterState.matchedAreaName]);
+  }, [filterState.type, filterState.matchedAreaName, setAreaFilter, setAreaSearchInput]);
+
 
   // ===== HANDLE PILL SELECTION =====
   /**
