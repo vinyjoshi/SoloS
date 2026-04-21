@@ -2,8 +2,9 @@ import admin from 'firebase-admin';
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
+  const serviceAccount = require('./serviceAccountKey.json');
   admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
+    credential: admin.credential.cert(serviceAccount),
   });
 }
 const db = admin.firestore();
