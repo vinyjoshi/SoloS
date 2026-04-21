@@ -26,7 +26,7 @@ const Header = ({
       <div className="w-full max-w-5xl px-4 md:px-6 py-1 flex justify-between items-center">
         {/* Logo */}
         <div className="flex items-center gap-1">
-          <div className="w-13 h-12 bg-black text-black rounded-full flex items-center justify-center font-bold text-lg shadow-lg shadow-white/15">
+          <div className="w-12 h-12 bg-black text-black rounded-full flex items-center justify-center font-bold text-lg shadow-lg shadow-white/15">
             <img src="/SolOS.png" alt="SolOS" className="w-full h-full object-cover rounded-full" />
           </div>
         </div>

@@ -17,7 +17,7 @@ export const handleRazorpayPayment = async (user, amount, description, onSuccess
     throw new Error('Razorpay SDK failed to load');
   }
 
-  const key = import.meta.env.VITE_RAZORPAY_KEY;
+  const key = import.meta.env.VITE_RAZORPAY_KEY_ID;
   if (!key) {
     alert('Payment configuration error. Please contact support.');
     throw new Error('Razorpay key not configured');

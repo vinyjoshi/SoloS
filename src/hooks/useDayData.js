@@ -4,7 +4,11 @@ import { db, APP_ID, emptyDayState } from '../constants';
 import { generateDateKey, getStartOfCurrentWeek } from '../utils/dateUtils';
 
 export const useDayData = (user, userTier, currentDate) => {
-  const [dayData, setDayData] = useState(emptyDayState);
+  const [dayData, setDayData] = useState({
+    ...emptyDayState,
+    top3: emptyDayState.top3.map(t => ({ ...t })),
+    expenses: []
+  });
   const [synced, setSynced] = useState(true);
   const [monthlyTotal, setMonthlyTotal] = useState(0);
 
@@ -26,7 +30,11 @@ export const useDayData = (user, userTier, currentDate) => {
     if (!user) return;
 
     if (isLocked) {
-      setDayData(emptyDayState);
+      setDayData({
+        ...emptyDayState,
+        top3: emptyDayState.top3.map(t => ({ ...t })),
+        expenses: []
+      });
       return;
     }
 
@@ -36,26 +44,28 @@ export const useDayData = (user, userTier, currentDate) => {
       (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          let safeTop3 = data.top3 || emptyDayState.top3;
+          let safeTop3 = data.top3 ? [...data.top3] : [...emptyDayState.top3];
 
           // Ensure 5 items
-          if (safeTop3.length < 5) {
-            const missing = 5 - safeTop3.length;
-            for (let i = 0; i < missing; i++) safeTop3.push({ text: '', done: false });
+          while (safeTop3.length < 5) {
+            safeTop3.push({ text: '', done: false });
           }
 
           // Migrate string[] -> object[]
           if (safeTop3.length > 0 && typeof safeTop3[0] === 'string') {
             safeTop3 = safeTop3.map((text) => ({ text, done: false }));
-            if (safeTop3.length < 5) {
-              const missing = 5 - safeTop3.length;
-              for (let i = 0; i < missing; i++) safeTop3.push({ text: '', done: false });
+            while (safeTop3.length < 5) {
+              safeTop3.push({ text: '', done: false });
             }
           }
 
           setDayData({ ...emptyDayState, ...data, top3: safeTop3 });
         } else {
-          setDayData(emptyDayState);
+          setDayData({
+            ...emptyDayState,
+            top3: emptyDayState.top3.map(t => ({ ...t })),
+            expenses: []
+          });
         }
         setSynced(true);
       },
@@ -91,7 +101,7 @@ export const useDayData = (user, userTier, currentDate) => {
       }
     };
     fetchMonthlyBurn();
-  }, [user, currentDate, dateKey]);
+  }, [user, currentDate, dateKey, dayData.expenses]);
 
   // --- SAVE ---
   const saveData = async (newData) => {
