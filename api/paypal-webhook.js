@@ -1,4 +1,7 @@
 import admin from 'firebase-admin';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
