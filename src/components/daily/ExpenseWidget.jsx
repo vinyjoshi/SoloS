@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { doc, setDoc, getDoc, onSnapshot, collection, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, collection, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import { db, APP_ID } from '../../constants';
 import { generateDateKey } from '../../utils/dateUtils';
 
@@ -164,13 +164,14 @@ const ExpenseWidget = ({ expenses, onUpdate, currentDate, user }) => {
   const monthlyTotal = monthlyExpenses.reduce((acc, curr) => acc + curr.amount, 0);
 
   const add = () => {
-    if (!desc || !amount || !selectedCategory) {
-      alert('Please select a category, add description, and amount');
+    const numAmount = parseFloat(amount);
+    if (!desc || isNaN(numAmount) || numAmount <= 0 || !selectedCategory) {
+      alert('Please select a category, add description, and a valid positive amount');
       return;
     }
     onUpdate([
       ...expenses,
-      { id: Date.now(), category: selectedCategory, desc, amount: parseFloat(amount), dateKey: todayKey },
+      { id: Date.now(), category: selectedCategory, desc, amount: numAmount, dateKey: todayKey },
     ]);
     setDesc('');
     setAmount('');

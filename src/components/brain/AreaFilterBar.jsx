@@ -26,6 +26,8 @@ export const AreaFilterBar = ({
   docs,
   areaSearchInput,
   setAreaSearchInput,
+  userTier,
+  setShowPricing,
 }) => {
   // Constants
   const NO_AREA_LABEL = 'Noise';
@@ -223,6 +225,13 @@ export const AreaFilterBar = ({
    * - Silent creation if new
    */
   const handleCreateArea = async (areaName) => {
+    // Check free tier limit
+    if (userTier === 'free' && customAreas.length >= 5) {
+      alert('Free tier is limited to 5 custom areas. Upgrade to Pro for unlimited areas!');
+      setShowPricing(true);
+      return;
+    }
+
     const trimmed = areaName.trim();
 
     // Validation: empty

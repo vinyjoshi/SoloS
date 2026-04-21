@@ -325,6 +325,8 @@ const SecondBrainPanel = ({ isOpen, onClose, user, setShowPricing, userTier }) =
               docs={docs}
               areaSearchInput={areaSearchInput}
               setAreaSearchInput={setAreaSearchInput}
+              userTier={userTier}
+              setShowPricing={setShowPricing}
             />
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
               <CollapsibleSection title="Projects" icon={Briefcase} defaultOpen={true}>

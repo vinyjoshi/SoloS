@@ -54,11 +54,11 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user }) => {
     if (value === '') { setLocalStart(''); return; }
     const newStart = parseInt(value, 10);
     if (isNaN(newStart)) return;
-    const clamped = Math.min(Math.max(newStart, 0), 24);
+    const clamped = Math.min(Math.max(newStart, 0), 23);
     setLocalStart(clamped);
     if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
     startTimeoutRef.current = setTimeout(() => {
-      const adjustedEnd = config.end < clamped ? clamped : config.end;
+      const adjustedEnd = config.end <= clamped ? Math.min(clamped + 1, 24) : config.end;
       setConfig({ ...config, start: clamped, end: adjustedEnd });
       saveRoutineConfig(clamped, adjustedEnd);
     }, 2000);
@@ -68,11 +68,11 @@ const RoutineWidget = ({ schedule, onUpdate, config, setConfig, user }) => {
     if (value === '') { setLocalEnd(''); return; }
     const newEnd = parseInt(value, 10);
     if (isNaN(newEnd)) return;
-    const clamped = Math.min(Math.max(newEnd, 0), 24);
+    const clamped = Math.min(Math.max(newEnd, 1), 24);
     setLocalEnd(clamped);
     if (endTimeoutRef.current) clearTimeout(endTimeoutRef.current);
     endTimeoutRef.current = setTimeout(() => {
-      const adjustedStart = config.start > clamped ? clamped : config.start;
+      const adjustedStart = config.start >= clamped ? Math.max(clamped - 1, 0) : config.start;
       setConfig({ ...config, start: adjustedStart, end: clamped });
       saveRoutineConfig(adjustedStart, clamped);
     }, 2000);
