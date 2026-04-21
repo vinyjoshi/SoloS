@@ -1,9 +1,14 @@
-// Optional: Payment verification webhook handler
-// This verifies payment signatures to prevent fraud
+import admin from 'firebase-admin';
 
-import crypto from 'crypto';
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+  });
+}
+const db = admin.firestore();
 
-export default async function handler(req, res) {
+// ... existing code ...
   // CORS headers
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -57,11 +62,25 @@ export default async function handler(req, res) {
     // Handle different events
     switch (event) {
       case 'payment.captured':
-        // Payment successful - you can update your database here
+        // Payment successful - update database
         console.log(`✅ Payment captured: ${payload.id}`);
         
-        // TODO: Update Firestore with payment confirmation
-        // This requires Firebase Admin SDK in serverless environment
+        // Update Firestore
+        try {
+          // Assuming payload.notes contains user identifier (like user email or id)
+          const userId = payload.notes?.user_id;
+          if (userId) {
+            await db.collection('users').doc(userId).update({
+              paymentStatus: 'paid',
+              paymentDate: admin.firestore.FieldValue.serverTimestamp(),
+              lastPaymentId: payload.id
+            });
+            console.log(`Firestore updated for user: ${userId}`);
+          }
+        } catch (err) {
+          console.error("Firestore update failed:", err);
+          throw new Error("Payment captured but database update failed");
+        }
         
         res.status(200).json({ 
           success: true,
