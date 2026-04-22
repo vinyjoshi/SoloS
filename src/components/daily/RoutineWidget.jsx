@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { logErrorToFirestore } from '../../utils/logger';
 import { Settings } from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, APP_ID } from '../../constants';

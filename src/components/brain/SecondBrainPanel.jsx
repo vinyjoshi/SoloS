@@ -8,7 +8,7 @@ import {
   collection, query, orderBy, onSnapshot, addDoc, updateDoc,
   deleteDoc, doc, serverTimestamp
 } from 'firebase/firestore';
-import { db, APP_ID } from '../../constants';
+import { canPerformAction, getLimits } from '../../utils/subscription';
 import CollapsibleSection from '../shared/CollapsibleSection';
 import DocEditor from './DocEditor';
 import { AreaFilterBar } from './AreaFilterBar';
@@ -91,13 +91,13 @@ const SecondBrainPanel = ({ isOpen, onClose, user, setShowPricing, userTier }) =
   }, [openMenuId]);
 
   const handleCreateDoc = async (category) => {
-    if (userTier === 'free') {
-      const count = docs.filter((d) => d.category === category).length;
-      const limits = { projects: 5, resources: 20 };
-      if (limits[category] && count >= limits[category]) {
-        setShowPricing(true);
-        return;
-      }
+    // Map category string to subscription limits
+    const limitKey = category === 'projects' ? 'projects' : category === 'resources' ? 'resources' : 'archives';
+    const count = docs.filter((d) => d.category === category).length;
+    
+    if (!canPerformAction(userTier, limitKey, count)) {
+      setShowPricing(true);
+      return;
     }
 
     const defaultArea =
