@@ -1,5 +1,6 @@
 import admin from 'firebase-admin';
 import * as dotenv from 'dotenv';
+import axios from 'axios';
 
 dotenv.config();
 
@@ -40,21 +41,50 @@ const db = admin.firestore();
     // For REST Webhooks: validate using the webhook-id, transmission-id, transmission-time,
     // and signature with the PayPal SDK or verification endpoint.
     
-    // VERIFICATION LOGIC HERE:
-    // This is a placeholder for the actual PayPal verification call.
-    // Replace this with: 
-    // const response = await fetch(paypalVerifyUrl, { ... });
-    // if (await response.text() !== 'VERIFIED') throw new Error('Not verified');
+// We'll use the raw body for verification
+    const rawBody = JSON.stringify(req.body);
+
+    // 1. Validate with PayPal (IPN verification)
+    // We send 'cmd=_notify-validate' + original body to PayPal
+    const verifyPayload = `cmd=_notify-validate&${rawBody}`;
+    
+    // Use PayPal's sandbox URL if testing, live URL for production
+    const paypalVerifyUrl = process.env.PAYPAL_BASE_URL === 'sandbox' 
+      ? 'https://ipnpb.sandbox.paypal.com/cgi-bin/webscr'
+      : 'https://ipnpb.paypal.com/cgi-bin/webscr';
+
+    const response = await axios.post(paypalVerifyUrl, verifyPayload);
+
+    if (response.data !== 'VERIFIED') {
+      throw new Error('PayPal verification failed: ' + response.data);
+    }
 
     // After verification, find the user by custom field or invoice and update Firestore
     const event = req.body;
-    // Assuming custom field in PayPal payload maps to a Firestore document ID or user email
-    // const userId = event.resource.custom_id; 
-    // await db.collection('users').doc(userId).update({ paid: true });
+    // Assuming custom field in PayPal payload maps to a Firestore document ID
+    const userId = event.custom; // PayPal IPN 'custom' field
+    
+    if (userId) {
+      await db.collection('users').doc(userId).update({
+        paymentStatus: 'paid',
+        paymentDate: admin.firestore.FieldValue.serverTimestamp(),
+        lastPaymentId: event.txn_id
+      });
+      console.log(`✅ PayPal payment verified and Firestore updated for user: ${userId}`);
+    }
 
     res.status(200).json({ success: true, message: 'Webhook verified and processed'});
   } catch (err) {
     console.error('paypal-webhook error:', err);
+    try {
+      await db.collection('errors').add({
+        source: 'paypal-webhook',
+        error: err.message,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (dbErr) {
+      console.error('Failed to log error to Firestore', dbErr);
+    }
     res.status(500).json({ error: 'Webhook processing failed', details: err.message });
   }
 }

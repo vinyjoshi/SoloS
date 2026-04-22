@@ -8,12 +8,18 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "build:mobile": "vite build && npx cap sync",
     "verify:payment": "node verify-payment-setup.js",
     "test:payment": "echo 'Testing payment integration... Open http://localhost:5173 and follow TESTING_CHECKLIST.md'"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/ios": "^8.3.1",
     "@paypal/react-paypal-js": "^8.9.2",
     "@vercel/analytics": "^1.6.1",
+    "axios": "^1.15.2",
     "firebase": "^10.8.0",
     "firebase-admin": "^13.8.0",
     "lucide-react": "^0.344.0",

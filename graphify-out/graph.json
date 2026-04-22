@@ -1,0 +1,1093 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "label": "postcss.config.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/postcss.config.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_postcss_config_js",
+      "community": 22,
+      "norm_label": "postcss.config.js"
+    },
+    {
+      "label": "eslint.config.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/eslint.config.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_eslint_config_js",
+      "community": 23,
+      "norm_label": "eslint.config.js"
+    },
+    {
+      "label": "verify-payment-setup.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/verify-payment-setup.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_verify_payment_setup_js",
+      "community": 24,
+      "norm_label": "verify-payment-setup.js"
+    },
+    {
+      "label": "tailwind.config.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/tailwind.config.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_tailwind_config_js",
+      "community": 25,
+      "norm_label": "tailwind.config.js"
+    },
+    {
+      "label": "vite.config.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/vite.config.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_vite_config_js",
+      "community": 26,
+      "norm_label": "vite.config.js"
+    },
+    {
+      "label": "create-order.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/api/create-order.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_api_create_order_js",
+      "community": 6,
+      "norm_label": "create-order.js"
+    },
+    {
+      "label": "handler()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/api/create-order.js",
+      "source_location": "L1",
+      "id": "create_order_handler",
+      "community": 6,
+      "norm_label": "handler()"
+    },
+    {
+      "label": "verify-payment.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/api/verify-payment.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_api_verify_payment_js",
+      "community": 7,
+      "norm_label": "verify-payment.js"
+    },
+    {
+      "label": "handler()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/api/verify-payment.js",
+      "source_location": "L3",
+      "id": "verify_payment_handler",
+      "community": 7,
+      "norm_label": "handler()"
+    },
+    {
+      "label": "webhook.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/api/webhook.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_api_webhook_js",
+      "community": 27,
+      "norm_label": "webhook.js"
+    },
+    {
+      "label": "capture-paypal-order.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/api/capture-paypal-order.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_api_capture_paypal_order_js",
+      "community": 8,
+      "norm_label": "capture-paypal-order.js"
+    },
+    {
+      "label": "handler()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/api/capture-paypal-order.js",
+      "source_location": "L1",
+      "id": "capture_paypal_order_handler",
+      "community": 8,
+      "norm_label": "handler()"
+    },
+    {
+      "label": "create-paypal-order.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/api/create-paypal-order.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_api_create_paypal_order_js",
+      "community": 9,
+      "norm_label": "create-paypal-order.js"
+    },
+    {
+      "label": "handler()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/api/create-paypal-order.js",
+      "source_location": "L1",
+      "id": "create_paypal_order_handler",
+      "community": 9,
+      "norm_label": "handler()"
+    },
+    {
+      "label": "paypal-webhook.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/api/paypal-webhook.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_api_paypal_webhook_js",
+      "community": 28,
+      "norm_label": "paypal-webhook.js"
+    },
+    {
+      "label": "App.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/App.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_app_jsx",
+      "community": 3,
+      "norm_label": "app.jsx"
+    },
+    {
+      "label": "SoloS()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/App.jsx",
+      "source_location": "L24",
+      "id": "app_solos",
+      "community": 3,
+      "norm_label": "solos()"
+    },
+    {
+      "label": "main.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/main.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_main_jsx",
+      "community": 29,
+      "norm_label": "main.jsx"
+    },
+    {
+      "label": "LoginPage.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/auth/LoginPage.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_auth_loginpage_jsx",
+      "community": 10,
+      "norm_label": "loginpage.jsx"
+    },
+    {
+      "label": "LoginPage()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/auth/LoginPage.jsx",
+      "source_location": "L1",
+      "id": "loginpage_loginpage",
+      "community": 10,
+      "norm_label": "loginpage()"
+    },
+    {
+      "label": "PricingModal.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/modals/PricingModal.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_modals_pricingmodal_jsx",
+      "community": 11,
+      "norm_label": "pricingmodal.jsx"
+    },
+    {
+      "label": "PricingModal()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/modals/PricingModal.jsx",
+      "source_location": "L9",
+      "id": "pricingmodal_pricingmodal",
+      "community": 11,
+      "norm_label": "pricingmodal()"
+    },
+    {
+      "label": "TextWidget.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/daily/TextWidget.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_daily_textwidget_jsx",
+      "community": 12,
+      "norm_label": "textwidget.jsx"
+    },
+    {
+      "label": "TextWidget()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/daily/TextWidget.jsx",
+      "source_location": "L1",
+      "id": "textwidget_textwidget",
+      "community": 12,
+      "norm_label": "textwidget()"
+    },
+    {
+      "label": "TimelineWidget.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/daily/TimelineWidget.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_daily_timelinewidget_jsx",
+      "community": 13,
+      "norm_label": "timelinewidget.jsx"
+    },
+    {
+      "label": "TimelineWidget()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/daily/TimelineWidget.jsx",
+      "source_location": "L5",
+      "id": "timelinewidget_timelinewidget",
+      "community": 13,
+      "norm_label": "timelinewidget()"
+    },
+    {
+      "label": "Top3Widget.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/daily/Top3Widget.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_daily_top3widget_jsx",
+      "community": 14,
+      "norm_label": "top3widget.jsx"
+    },
+    {
+      "label": "Top3Widget()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/daily/Top3Widget.jsx",
+      "source_location": "L3",
+      "id": "top3widget_top3widget",
+      "community": 14,
+      "norm_label": "top3widget()"
+    },
+    {
+      "label": "RoutineWidget.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/daily/RoutineWidget.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_daily_routinewidget_jsx",
+      "community": 15,
+      "norm_label": "routinewidget.jsx"
+    },
+    {
+      "label": "RoutineWidget()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/daily/RoutineWidget.jsx",
+      "source_location": "L6",
+      "id": "routinewidget_routinewidget",
+      "community": 15,
+      "norm_label": "routinewidget()"
+    },
+    {
+      "label": "ExpenseWidget.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/daily/ExpenseWidget.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_daily_expensewidget_jsx",
+      "community": 0,
+      "norm_label": "expensewidget.jsx"
+    },
+    {
+      "label": "getRandomColor()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/daily/ExpenseWidget.jsx",
+      "source_location": "L25",
+      "id": "expensewidget_getrandomcolor",
+      "community": 0,
+      "norm_label": "getrandomcolor()"
+    },
+    {
+      "label": "ExpenseWidget()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/daily/ExpenseWidget.jsx",
+      "source_location": "L28",
+      "id": "expensewidget_expensewidget",
+      "community": 0,
+      "norm_label": "expensewidget()"
+    },
+    {
+      "label": "SecondBrainPanel.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/brain/SecondBrainPanel.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_brain_secondbrainpanel_jsx",
+      "community": 16,
+      "norm_label": "secondbrainpanel.jsx"
+    },
+    {
+      "label": "SecondBrainPanel()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/brain/SecondBrainPanel.jsx",
+      "source_location": "L18",
+      "id": "secondbrainpanel_secondbrainpanel",
+      "community": 16,
+      "norm_label": "secondbrainpanel()"
+    },
+    {
+      "label": "AreaFilterBar.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/brain/AreaFilterBar.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_brain_areafilterbar_jsx",
+      "community": 4,
+      "norm_label": "areafilterbar.jsx"
+    },
+    {
+      "label": "AreaFilterBar()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/brain/AreaFilterBar.jsx",
+      "source_location": "L18",
+      "id": "areafilterbar_areafilterbar",
+      "community": 4,
+      "norm_label": "areafilterbar()"
+    },
+    {
+      "label": "AreaPill()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/brain/AreaFilterBar.jsx",
+      "source_location": "L498",
+      "id": "areafilterbar_areapill",
+      "community": 4,
+      "norm_label": "areapill()"
+    },
+    {
+      "label": "DocEditor.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/brain/DocEditor.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_brain_doceditor_jsx",
+      "community": 17,
+      "norm_label": "doceditor.jsx"
+    },
+    {
+      "label": "DocEditor()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/brain/DocEditor.jsx",
+      "source_location": "L8",
+      "id": "doceditor_doceditor",
+      "community": 17,
+      "norm_label": "doceditor()"
+    },
+    {
+      "label": "Header.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/layout/Header.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_layout_header_jsx",
+      "community": 18,
+      "norm_label": "header.jsx"
+    },
+    {
+      "label": "Header()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/layout/Header.jsx",
+      "source_location": "L6",
+      "id": "header_header",
+      "community": 18,
+      "norm_label": "header()"
+    },
+    {
+      "label": "CollapsibleSection.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/shared/CollapsibleSection.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_shared_collapsiblesection_jsx",
+      "community": 19,
+      "norm_label": "collapsiblesection.jsx"
+    },
+    {
+      "label": "CollapsibleSection()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/shared/CollapsibleSection.jsx",
+      "source_location": "L4",
+      "id": "collapsiblesection_collapsiblesection",
+      "community": 19,
+      "norm_label": "collapsiblesection()"
+    },
+    {
+      "label": "ErrorBoundary.jsx",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_components_shared_errorboundary_jsx",
+      "community": 1,
+      "norm_label": "errorboundary.jsx"
+    },
+    {
+      "label": "ErrorBoundary",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx",
+      "source_location": "L3",
+      "id": "errorboundary_errorboundary",
+      "community": 1,
+      "norm_label": "errorboundary"
+    },
+    {
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx",
+      "source_location": "L4",
+      "id": "errorboundary_errorboundary_constructor",
+      "community": 1,
+      "norm_label": ".constructor()"
+    },
+    {
+      "label": ".getDerivedStateFromError()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx",
+      "source_location": "L9",
+      "id": "errorboundary_errorboundary_getderivedstatefromerror",
+      "community": 1,
+      "norm_label": ".getderivedstatefromerror()"
+    },
+    {
+      "label": ".componentDidCatch()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx",
+      "source_location": "L13",
+      "id": "errorboundary_errorboundary_componentdidcatch",
+      "community": 1,
+      "norm_label": ".componentdidcatch()"
+    },
+    {
+      "label": ".render()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx",
+      "source_location": "L18",
+      "id": "errorboundary_errorboundary_render",
+      "community": 1,
+      "norm_label": ".render()"
+    },
+    {
+      "label": "index.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/constants/index.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_constants_index_js",
+      "community": 20,
+      "norm_label": "index.js"
+    },
+    {
+      "label": "ensureHeaderToastStyles()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/constants/index.js",
+      "source_location": "L41",
+      "id": "index_ensureheadertoaststyles",
+      "community": 20,
+      "norm_label": "ensureheadertoaststyles()"
+    },
+    {
+      "label": "dateUtils.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/utils/dateUtils.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_utils_dateutils_js",
+      "community": 2,
+      "norm_label": "dateutils.js"
+    },
+    {
+      "label": "generateDateKey()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/utils/dateUtils.js",
+      "source_location": "L3",
+      "id": "dateutils_generatedatekey",
+      "community": 0,
+      "norm_label": "generatedatekey()"
+    },
+    {
+      "label": "getDaysInMonth()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/utils/dateUtils.js",
+      "source_location": "L11",
+      "id": "dateutils_getdaysinmonth",
+      "community": 2,
+      "norm_label": "getdaysinmonth()"
+    },
+    {
+      "label": "getFirstDayOfMonth()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/utils/dateUtils.js",
+      "source_location": "L14",
+      "id": "dateutils_getfirstdayofmonth",
+      "community": 2,
+      "norm_label": "getfirstdayofmonth()"
+    },
+    {
+      "label": "getStartOfCurrentWeek()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/utils/dateUtils.js",
+      "source_location": "L18",
+      "id": "dateutils_getstartofcurrentweek",
+      "community": 2,
+      "norm_label": "getstartofcurrentweek()"
+    },
+    {
+      "label": "getStartOfWeek()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/utils/dateUtils.js",
+      "source_location": "L28",
+      "id": "dateutils_getstartofweek",
+      "community": 2,
+      "norm_label": "getstartofweek()"
+    },
+    {
+      "label": "useAuth.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/hooks/useAuth.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_hooks_useauth_js",
+      "community": 3,
+      "norm_label": "useauth.js"
+    },
+    {
+      "label": "useAuth()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/hooks/useAuth.js",
+      "source_location": "L6",
+      "id": "useauth_useauth",
+      "community": 3,
+      "norm_label": "useauth()"
+    },
+    {
+      "label": "useDayData.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/hooks/useDayData.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_src_hooks_usedaydata_js",
+      "community": 0,
+      "norm_label": "usedaydata.js"
+    },
+    {
+      "label": "useDayData()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/src/hooks/useDayData.js",
+      "source_location": "L6",
+      "id": "usedaydata_usedaydata",
+      "community": 0,
+      "norm_label": "usedaydata()"
+    },
+    {
+      "label": "diagnostics.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/utils/diagnostics.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_utils_diagnostics_js",
+      "community": 21,
+      "norm_label": "diagnostics.js"
+    },
+    {
+      "label": "runPaymentDiagnostics()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/utils/diagnostics.js",
+      "source_location": "L6",
+      "id": "diagnostics_runpaymentdiagnostics",
+      "community": 21,
+      "norm_label": "runpaymentdiagnostics()"
+    },
+    {
+      "label": "payment.js",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/utils/payment.js",
+      "source_location": "L1",
+      "id": "home_viny_solos_utils_payment_js",
+      "community": 5,
+      "norm_label": "payment.js"
+    },
+    {
+      "label": "loadRazorpayScript()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/utils/payment.js",
+      "source_location": "L2",
+      "id": "payment_loadrazorpayscript",
+      "community": 5,
+      "norm_label": "loadrazorpayscript()"
+    },
+    {
+      "label": "handleRazorpayPayment()",
+      "file_type": "code",
+      "source_file": "/home/viny/SoloS/utils/payment.js",
+      "source_location": "L13",
+      "id": "payment_handlerazorpaypayment",
+      "community": 5,
+      "norm_label": "handlerazorpaypayment()"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/api/create-order.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_src": "home_viny_solos_api_create_order_js",
+      "_tgt": "create_order_handler",
+      "source": "home_viny_solos_api_create_order_js",
+      "target": "create_order_handler",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/api/verify-payment.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_src": "home_viny_solos_api_verify_payment_js",
+      "_tgt": "verify_payment_handler",
+      "source": "home_viny_solos_api_verify_payment_js",
+      "target": "verify_payment_handler",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/api/capture-paypal-order.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_src": "home_viny_solos_api_capture_paypal_order_js",
+      "_tgt": "capture_paypal_order_handler",
+      "source": "home_viny_solos_api_capture_paypal_order_js",
+      "target": "capture_paypal_order_handler",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/api/create-paypal-order.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_src": "home_viny_solos_api_create_paypal_order_js",
+      "_tgt": "create_paypal_order_handler",
+      "source": "home_viny_solos_api_create_paypal_order_js",
+      "target": "create_paypal_order_handler",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/App.jsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_app_jsx",
+      "_tgt": "app_solos",
+      "source": "home_viny_solos_src_app_jsx",
+      "target": "app_solos",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "/home/viny/SoloS/src/App.jsx",
+      "source_location": "L42",
+      "weight": 1.0,
+      "_src": "app_solos",
+      "_tgt": "useauth_useauth",
+      "source": "app_solos",
+      "target": "useauth_useauth"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "/home/viny/SoloS/src/App.jsx",
+      "source_location": "L50",
+      "weight": 1.0,
+      "_src": "app_solos",
+      "_tgt": "usedaydata_usedaydata",
+      "source": "app_solos",
+      "target": "usedaydata_usedaydata"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/auth/LoginPage.jsx",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_auth_loginpage_jsx",
+      "_tgt": "loginpage_loginpage",
+      "source": "home_viny_solos_src_components_auth_loginpage_jsx",
+      "target": "loginpage_loginpage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/modals/PricingModal.jsx",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_modals_pricingmodal_jsx",
+      "_tgt": "pricingmodal_pricingmodal",
+      "source": "home_viny_solos_src_components_modals_pricingmodal_jsx",
+      "target": "pricingmodal_pricingmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/daily/TextWidget.jsx",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_daily_textwidget_jsx",
+      "_tgt": "textwidget_textwidget",
+      "source": "home_viny_solos_src_components_daily_textwidget_jsx",
+      "target": "textwidget_textwidget",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/daily/TimelineWidget.jsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_daily_timelinewidget_jsx",
+      "_tgt": "timelinewidget_timelinewidget",
+      "source": "home_viny_solos_src_components_daily_timelinewidget_jsx",
+      "target": "timelinewidget_timelinewidget",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/daily/Top3Widget.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_daily_top3widget_jsx",
+      "_tgt": "top3widget_top3widget",
+      "source": "home_viny_solos_src_components_daily_top3widget_jsx",
+      "target": "top3widget_top3widget",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/daily/RoutineWidget.jsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_daily_routinewidget_jsx",
+      "_tgt": "routinewidget_routinewidget",
+      "source": "home_viny_solos_src_components_daily_routinewidget_jsx",
+      "target": "routinewidget_routinewidget",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/daily/ExpenseWidget.jsx",
+      "source_location": "L25",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_daily_expensewidget_jsx",
+      "_tgt": "expensewidget_getrandomcolor",
+      "source": "home_viny_solos_src_components_daily_expensewidget_jsx",
+      "target": "expensewidget_getrandomcolor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/daily/ExpenseWidget.jsx",
+      "source_location": "L28",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_daily_expensewidget_jsx",
+      "_tgt": "expensewidget_expensewidget",
+      "source": "home_viny_solos_src_components_daily_expensewidget_jsx",
+      "target": "expensewidget_expensewidget",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "/home/viny/SoloS/src/components/daily/ExpenseWidget.jsx",
+      "source_location": "L38",
+      "weight": 1.0,
+      "_src": "expensewidget_expensewidget",
+      "_tgt": "dateutils_generatedatekey",
+      "source": "expensewidget_expensewidget",
+      "target": "dateutils_generatedatekey"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/brain/SecondBrainPanel.jsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_brain_secondbrainpanel_jsx",
+      "_tgt": "secondbrainpanel_secondbrainpanel",
+      "source": "home_viny_solos_src_components_brain_secondbrainpanel_jsx",
+      "target": "secondbrainpanel_secondbrainpanel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/brain/AreaFilterBar.jsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_brain_areafilterbar_jsx",
+      "_tgt": "areafilterbar_areafilterbar",
+      "source": "home_viny_solos_src_components_brain_areafilterbar_jsx",
+      "target": "areafilterbar_areafilterbar",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/brain/AreaFilterBar.jsx",
+      "source_location": "L498",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_brain_areafilterbar_jsx",
+      "_tgt": "areafilterbar_areapill",
+      "source": "home_viny_solos_src_components_brain_areafilterbar_jsx",
+      "target": "areafilterbar_areapill",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/brain/DocEditor.jsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_brain_doceditor_jsx",
+      "_tgt": "doceditor_doceditor",
+      "source": "home_viny_solos_src_components_brain_doceditor_jsx",
+      "target": "doceditor_doceditor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/layout/Header.jsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_layout_header_jsx",
+      "_tgt": "header_header",
+      "source": "home_viny_solos_src_components_layout_header_jsx",
+      "target": "header_header",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/shared/CollapsibleSection.jsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_shared_collapsiblesection_jsx",
+      "_tgt": "collapsiblesection_collapsiblesection",
+      "source": "home_viny_solos_src_components_shared_collapsiblesection_jsx",
+      "target": "collapsiblesection_collapsiblesection",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_components_shared_errorboundary_jsx",
+      "_tgt": "errorboundary_errorboundary",
+      "source": "home_viny_solos_src_components_shared_errorboundary_jsx",
+      "target": "errorboundary_errorboundary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_src": "errorboundary_errorboundary",
+      "_tgt": "errorboundary_errorboundary_constructor",
+      "source": "errorboundary_errorboundary",
+      "target": "errorboundary_errorboundary_constructor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_src": "errorboundary_errorboundary",
+      "_tgt": "errorboundary_errorboundary_getderivedstatefromerror",
+      "source": "errorboundary_errorboundary",
+      "target": "errorboundary_errorboundary_getderivedstatefromerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_src": "errorboundary_errorboundary",
+      "_tgt": "errorboundary_errorboundary_componentdidcatch",
+      "source": "errorboundary_errorboundary",
+      "target": "errorboundary_errorboundary_componentdidcatch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "_src": "errorboundary_errorboundary",
+      "_tgt": "errorboundary_errorboundary_render",
+      "source": "errorboundary_errorboundary",
+      "target": "errorboundary_errorboundary_render",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/constants/index.js",
+      "source_location": "L41",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_constants_index_js",
+      "_tgt": "index_ensureheadertoaststyles",
+      "source": "home_viny_solos_src_constants_index_js",
+      "target": "index_ensureheadertoaststyles",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/utils/dateUtils.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_utils_dateutils_js",
+      "_tgt": "dateutils_generatedatekey",
+      "source": "home_viny_solos_src_utils_dateutils_js",
+      "target": "dateutils_generatedatekey",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/utils/dateUtils.js",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_utils_dateutils_js",
+      "_tgt": "dateutils_getdaysinmonth",
+      "source": "home_viny_solos_src_utils_dateutils_js",
+      "target": "dateutils_getdaysinmonth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/utils/dateUtils.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_utils_dateutils_js",
+      "_tgt": "dateutils_getfirstdayofmonth",
+      "source": "home_viny_solos_src_utils_dateutils_js",
+      "target": "dateutils_getfirstdayofmonth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/utils/dateUtils.js",
+      "source_location": "L18",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_utils_dateutils_js",
+      "_tgt": "dateutils_getstartofcurrentweek",
+      "source": "home_viny_solos_src_utils_dateutils_js",
+      "target": "dateutils_getstartofcurrentweek",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/utils/dateUtils.js",
+      "source_location": "L28",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_utils_dateutils_js",
+      "_tgt": "dateutils_getstartofweek",
+      "source": "home_viny_solos_src_utils_dateutils_js",
+      "target": "dateutils_getstartofweek",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "/home/viny/SoloS/src/hooks/useDayData.js",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_src": "dateutils_generatedatekey",
+      "_tgt": "usedaydata_usedaydata",
+      "source": "dateutils_generatedatekey",
+      "target": "usedaydata_usedaydata"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/hooks/useAuth.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_hooks_useauth_js",
+      "_tgt": "useauth_useauth",
+      "source": "home_viny_solos_src_hooks_useauth_js",
+      "target": "useauth_useauth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/src/hooks/useDayData.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_src": "home_viny_solos_src_hooks_usedaydata_js",
+      "_tgt": "usedaydata_usedaydata",
+      "source": "home_viny_solos_src_hooks_usedaydata_js",
+      "target": "usedaydata_usedaydata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/utils/diagnostics.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_src": "home_viny_solos_utils_diagnostics_js",
+      "_tgt": "diagnostics_runpaymentdiagnostics",
+      "source": "home_viny_solos_utils_diagnostics_js",
+      "target": "diagnostics_runpaymentdiagnostics",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/utils/payment.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_src": "home_viny_solos_utils_payment_js",
+      "_tgt": "payment_loadrazorpayscript",
+      "source": "home_viny_solos_utils_payment_js",
+      "target": "payment_loadrazorpayscript",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/utils/payment.js",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_src": "home_viny_solos_utils_payment_js",
+      "_tgt": "payment_handlerazorpaypayment",
+      "source": "home_viny_solos_utils_payment_js",
+      "target": "payment_handlerazorpaypayment",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "/home/viny/SoloS/utils/payment.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "_src": "payment_handlerazorpaypayment",
+      "_tgt": "payment_loadrazorpayscript",
+      "source": "payment_loadrazorpayscript",
+      "target": "payment_handlerazorpaypayment",
+      "confidence_score": 1.0
+    }
+  ],
+  "hyperedges": []
+}

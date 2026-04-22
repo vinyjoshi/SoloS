@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import { doc, setDoc, onSnapshot, collection, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { logErrorToFirestore } from '../../utils/logger';
+import { doc, setDoc, onSnapshot, collection, getDocs, query, where, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, APP_ID } from '../../constants';
 import { generateDateKey } from '../../utils/dateUtils';
 

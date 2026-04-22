@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>graphify - /home/viny/SoloS/graphify-out/graph.html</title>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0f1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; display: flex; height: 100vh; overflow: hidden; }
+  #graph { flex: 1; }
+  #sidebar { width: 280px; background: #1a1a2e; border-left: 1px solid #2a2a4e; display: flex; flex-direction: column; overflow: hidden; }
+  #search-wrap { padding: 12px; border-bottom: 1px solid #2a2a4e; }
+  #search { width: 100%; background: #0f0f1a; border: 1px solid #3a3a5e; color: #e0e0e0; padding: 7px 10px; border-radius: 6px; font-size: 13px; outline: none; }
+  #search:focus { border-color: #4E79A7; }
+  #search-results { max-height: 140px; overflow-y: auto; padding: 4px 12px; border-bottom: 1px solid #2a2a4e; display: none; }
+  .search-item { padding: 4px 6px; cursor: pointer; border-radius: 4px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .search-item:hover { background: #2a2a4e; }
+  #info-panel { padding: 14px; border-bottom: 1px solid #2a2a4e; min-height: 140px; }
+  #info-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  #info-content { font-size: 13px; color: #ccc; line-height: 1.6; }
+  #info-content .field { margin-bottom: 5px; }
+  #info-content .field b { color: #e0e0e0; }
+  #info-content .empty { color: #555; font-style: italic; }
+  .neighbor-link { display: block; padding: 2px 6px; margin: 2px 0; border-radius: 3px; cursor: pointer; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid #333; }
+  .neighbor-link:hover { background: #2a2a4e; }
+  #neighbors-list { max-height: 160px; overflow-y: auto; margin-top: 4px; }
+  #legend-wrap { flex: 1; overflow-y: auto; padding: 12px; }
+  #legend-wrap h3 { font-size: 13px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; border-radius: 4px; font-size: 12px; }
+  .legend-item:hover { background: #2a2a4e; padding-left: 4px; }
+  .legend-item.dimmed { opacity: 0.35; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .legend-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-count { color: #666; font-size: 11px; }
+  #stats { padding: 10px 14px; border-top: 1px solid #2a2a4e; font-size: 11px; color: #555; }
+</style>
+</head>
+<body>
+<div id="graph"></div>
+<div id="sidebar">
+  <div id="search-wrap">
+    <input id="search" type="text" placeholder="Search nodes..." autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+  <div id="info-panel">
+    <h3>Node Info</h3>
+    <div id="info-content"><span class="empty">Click a node to inspect it</span></div>
+  </div>
+  <div id="legend-wrap">
+    <h3>Communities</h3>
+    <div id="legend"></div>
+  </div>
+  <div id="stats">67 nodes &middot; 40 edges &middot; 30 communities</div>
+</div>
+<script>
+const RAW_NODES = [{"id": "home_viny_solos_postcss_config_js", "label": "postcss.config.js", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "postcss.config.js", "community": 22, "community_name": "Community 22", "source_file": "/home/viny/SoloS/postcss.config.js", "file_type": "code", "degree": 0}, {"id": "home_viny_solos_eslint_config_js", "label": "eslint.config.js", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "eslint.config.js", "community": 23, "community_name": "Community 23", "source_file": "/home/viny/SoloS/eslint.config.js", "file_type": "code", "degree": 0}, {"id": "home_viny_solos_verify_payment_setup_js", "label": "verify-payment-setup.js", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "verify-payment-setup.js", "community": 24, "community_name": "Community 24", "source_file": "/home/viny/SoloS/verify-payment-setup.js", "file_type": "code", "degree": 0}, {"id": "home_viny_solos_tailwind_config_js", "label": "tailwind.config.js", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "tailwind.config.js", "community": 25, "community_name": "Community 25", "source_file": "/home/viny/SoloS/tailwind.config.js", "file_type": "code", "degree": 0}, {"id": "home_viny_solos_vite_config_js", "label": "vite.config.js", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "vite.config.js", "community": 26, "community_name": "Community 26", "source_file": "/home/viny/SoloS/vite.config.js", "file_type": "code", "degree": 0}, {"id": "home_viny_solos_api_create_order_js", "label": "create-order.js", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "create-order.js", "community": 6, "community_name": "Community 6", "source_file": "/home/viny/SoloS/api/create-order.js", "file_type": "code", "degree": 1}, {"id": "create_order_handler", "label": "handler()", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "handler()", "community": 6, "community_name": "Community 6", "source_file": "/home/viny/SoloS/api/create-order.js", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_api_verify_payment_js", "label": "verify-payment.js", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "verify-payment.js", "community": 7, "community_name": "Community 7", "source_file": "/home/viny/SoloS/api/verify-payment.js", "file_type": "code", "degree": 1}, {"id": "verify_payment_handler", "label": "handler()", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "handler()", "community": 7, "community_name": "Community 7", "source_file": "/home/viny/SoloS/api/verify-payment.js", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_api_webhook_js", "label": "webhook.js", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "webhook.js", "community": 27, "community_name": "Community 27", "source_file": "/home/viny/SoloS/api/webhook.js", "file_type": "code", "degree": 0}, {"id": "home_viny_solos_api_capture_paypal_order_js", "label": "capture-paypal-order.js", "color": {"background": "#9C755F", "border": "#9C755F", "highlight": {"background": "#ffffff", "border": "#9C755F"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "capture-paypal-order.js", "community": 8, "community_name": "Community 8", "source_file": "/home/viny/SoloS/api/capture-paypal-order.js", "file_type": "code", "degree": 1}, {"id": "capture_paypal_order_handler", "label": "handler()", "color": {"background": "#9C755F", "border": "#9C755F", "highlight": {"background": "#ffffff", "border": "#9C755F"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "handler()", "community": 8, "community_name": "Community 8", "source_file": "/home/viny/SoloS/api/capture-paypal-order.js", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_api_create_paypal_order_js", "label": "create-paypal-order.js", "color": {"background": "#BAB0AC", "border": "#BAB0AC", "highlight": {"background": "#ffffff", "border": "#BAB0AC"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "create-paypal-order.js", "community": 9, "community_name": "Community 9", "source_file": "/home/viny/SoloS/api/create-paypal-order.js", "file_type": "code", "degree": 1}, {"id": "create_paypal_order_handler", "label": "handler()", "color": {"background": "#BAB0AC", "border": "#BAB0AC", "highlight": {"background": "#ffffff", "border": "#BAB0AC"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "handler()", "community": 9, "community_name": "Community 9", "source_file": "/home/viny/SoloS/api/create-paypal-order.js", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_api_paypal_webhook_js", "label": "paypal-webhook.js", "color": {"background": "#9C755F", "border": "#9C755F", "highlight": {"background": "#ffffff", "border": "#9C755F"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "paypal-webhook.js", "community": 28, "community_name": "Community 28", "source_file": "/home/viny/SoloS/api/paypal-webhook.js", "file_type": "code", "degree": 0}, {"id": "home_viny_solos_src_app_jsx", "label": "App.jsx", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "App.jsx", "community": 3, "community_name": "Community 3", "source_file": "/home/viny/SoloS/src/App.jsx", "file_type": "code", "degree": 1}, {"id": "app_solos", "label": "SoloS()", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 28.0, "font": {"size": 12, "color": "#ffffff"}, "title": "SoloS()", "community": 3, "community_name": "Community 3", "source_file": "/home/viny/SoloS/src/App.jsx", "file_type": "code", "degree": 3}, {"id": "home_viny_solos_src_main_jsx", "label": "main.jsx", "color": {"background": "#BAB0AC", "border": "#BAB0AC", "highlight": {"background": "#ffffff", "border": "#BAB0AC"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "main.jsx", "community": 29, "community_name": "Community 29", "source_file": "/home/viny/SoloS/src/main.jsx", "file_type": "code", "degree": 0}, {"id": "home_viny_solos_src_components_auth_loginpage_jsx", "label": "LoginPage.jsx", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "LoginPage.jsx", "community": 10, "community_name": "Community 10", "source_file": "/home/viny/SoloS/src/components/auth/LoginPage.jsx", "file_type": "code", "degree": 1}, {"id": "loginpage_loginpage", "label": "LoginPage()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "LoginPage()", "community": 10, "community_name": "Community 10", "source_file": "/home/viny/SoloS/src/components/auth/LoginPage.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_components_modals_pricingmodal_jsx", "label": "PricingModal.jsx", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "PricingModal.jsx", "community": 11, "community_name": "Community 11", "source_file": "/home/viny/SoloS/src/components/modals/PricingModal.jsx", "file_type": "code", "degree": 1}, {"id": "pricingmodal_pricingmodal", "label": "PricingModal()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "PricingModal()", "community": 11, "community_name": "Community 11", "source_file": "/home/viny/SoloS/src/components/modals/PricingModal.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_components_daily_textwidget_jsx", "label": "TextWidget.jsx", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "TextWidget.jsx", "community": 12, "community_name": "Community 12", "source_file": "/home/viny/SoloS/src/components/daily/TextWidget.jsx", "file_type": "code", "degree": 1}, {"id": "textwidget_textwidget", "label": "TextWidget()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "TextWidget()", "community": 12, "community_name": "Community 12", "source_file": "/home/viny/SoloS/src/components/daily/TextWidget.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_components_daily_timelinewidget_jsx", "label": "TimelineWidget.jsx", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "TimelineWidget.jsx", "community": 13, "community_name": "Community 13", "source_file": "/home/viny/SoloS/src/components/daily/TimelineWidget.jsx", "file_type": "code", "degree": 1}, {"id": "timelinewidget_timelinewidget", "label": "TimelineWidget()", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "TimelineWidget()", "community": 13, "community_name": "Community 13", "source_file": "/home/viny/SoloS/src/components/daily/TimelineWidget.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_components_daily_top3widget_jsx", "label": "Top3Widget.jsx", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Top3Widget.jsx", "community": 14, "community_name": "Community 14", "source_file": "/home/viny/SoloS/src/components/daily/Top3Widget.jsx", "file_type": "code", "degree": 1}, {"id": "top3widget_top3widget", "label": "Top3Widget()", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Top3Widget()", "community": 14, "community_name": "Community 14", "source_file": "/home/viny/SoloS/src/components/daily/Top3Widget.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_components_daily_routinewidget_jsx", "label": "RoutineWidget.jsx", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "RoutineWidget.jsx", "community": 15, "community_name": "Community 15", "source_file": "/home/viny/SoloS/src/components/daily/RoutineWidget.jsx", "file_type": "code", "degree": 1}, {"id": "routinewidget_routinewidget", "label": "RoutineWidget()", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "RoutineWidget()", "community": 15, "community_name": "Community 15", "source_file": "/home/viny/SoloS/src/components/daily/RoutineWidget.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_components_daily_expensewidget_jsx", "label": "ExpenseWidget.jsx", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "ExpenseWidget.jsx", "community": 0, "community_name": "Community 0", "source_file": "/home/viny/SoloS/src/components/daily/ExpenseWidget.jsx", "file_type": "code", "degree": 2}, {"id": "expensewidget_getrandomcolor", "label": "getRandomColor()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "getRandomColor()", "community": 0, "community_name": "Community 0", "source_file": "/home/viny/SoloS/src/components/daily/ExpenseWidget.jsx", "file_type": "code", "degree": 1}, {"id": "expensewidget_expensewidget", "label": "ExpenseWidget()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "ExpenseWidget()", "community": 0, "community_name": "Community 0", "source_file": "/home/viny/SoloS/src/components/daily/ExpenseWidget.jsx", "file_type": "code", "degree": 2}, {"id": "home_viny_solos_src_components_brain_secondbrainpanel_jsx", "label": "SecondBrainPanel.jsx", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "SecondBrainPanel.jsx", "community": 16, "community_name": "Community 16", "source_file": "/home/viny/SoloS/src/components/brain/SecondBrainPanel.jsx", "file_type": "code", "degree": 1}, {"id": "secondbrainpanel_secondbrainpanel", "label": "SecondBrainPanel()", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "SecondBrainPanel()", "community": 16, "community_name": "Community 16", "source_file": "/home/viny/SoloS/src/components/brain/SecondBrainPanel.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_components_brain_areafilterbar_jsx", "label": "AreaFilterBar.jsx", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "AreaFilterBar.jsx", "community": 4, "community_name": "Community 4", "source_file": "/home/viny/SoloS/src/components/brain/AreaFilterBar.jsx", "file_type": "code", "degree": 2}, {"id": "areafilterbar_areafilterbar", "label": "AreaFilterBar()", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "AreaFilterBar()", "community": 4, "community_name": "Community 4", "source_file": "/home/viny/SoloS/src/components/brain/AreaFilterBar.jsx", "file_type": "code", "degree": 1}, {"id": "areafilterbar_areapill", "label": "AreaPill()", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "AreaPill()", "community": 4, "community_name": "Community 4", "source_file": "/home/viny/SoloS/src/components/brain/AreaFilterBar.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_components_brain_doceditor_jsx", "label": "DocEditor.jsx", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "DocEditor.jsx", "community": 17, "community_name": "Community 17", "source_file": "/home/viny/SoloS/src/components/brain/DocEditor.jsx", "file_type": "code", "degree": 1}, {"id": "doceditor_doceditor", "label": "DocEditor()", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "DocEditor()", "community": 17, "community_name": "Community 17", "source_file": "/home/viny/SoloS/src/components/brain/DocEditor.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_components_layout_header_jsx", "label": "Header.jsx", "color": {"background": "#9C755F", "border": "#9C755F", "highlight": {"background": "#ffffff", "border": "#9C755F"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Header.jsx", "community": 18, "community_name": "Community 18", "source_file": "/home/viny/SoloS/src/components/layout/Header.jsx", "file_type": "code", "degree": 1}, {"id": "header_header", "label": "Header()", "color": {"background": "#9C755F", "border": "#9C755F", "highlight": {"background": "#ffffff", "border": "#9C755F"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Header()", "community": 18, "community_name": "Community 18", "source_file": "/home/viny/SoloS/src/components/layout/Header.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_components_shared_collapsiblesection_jsx", "label": "CollapsibleSection.jsx", "color": {"background": "#BAB0AC", "border": "#BAB0AC", "highlight": {"background": "#ffffff", "border": "#BAB0AC"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "CollapsibleSection.jsx", "community": 19, "community_name": "Community 19", "source_file": "/home/viny/SoloS/src/components/shared/CollapsibleSection.jsx", "file_type": "code", "degree": 1}, {"id": "collapsiblesection_collapsiblesection", "label": "CollapsibleSection()", "color": {"background": "#BAB0AC", "border": "#BAB0AC", "highlight": {"background": "#ffffff", "border": "#BAB0AC"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "CollapsibleSection()", "community": 19, "community_name": "Community 19", "source_file": "/home/viny/SoloS/src/components/shared/CollapsibleSection.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_components_shared_errorboundary_jsx", "label": "ErrorBoundary.jsx", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "ErrorBoundary.jsx", "community": 1, "community_name": "Community 1", "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx", "file_type": "code", "degree": 1}, {"id": "errorboundary_errorboundary", "label": "ErrorBoundary", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 40.0, "font": {"size": 12, "color": "#ffffff"}, "title": "ErrorBoundary", "community": 1, "community_name": "Community 1", "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx", "file_type": "code", "degree": 5}, {"id": "errorboundary_errorboundary_constructor", "label": ".constructor()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": ".constructor()", "community": 1, "community_name": "Community 1", "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx", "file_type": "code", "degree": 1}, {"id": "errorboundary_errorboundary_getderivedstatefromerror", "label": ".getDerivedStateFromError()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": ".getDerivedStateFromError()", "community": 1, "community_name": "Community 1", "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx", "file_type": "code", "degree": 1}, {"id": "errorboundary_errorboundary_componentdidcatch", "label": ".componentDidCatch()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": ".componentDidCatch()", "community": 1, "community_name": "Community 1", "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx", "file_type": "code", "degree": 1}, {"id": "errorboundary_errorboundary_render", "label": ".render()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": ".render()", "community": 1, "community_name": "Community 1", "source_file": "/home/viny/SoloS/src/components/shared/ErrorBoundary.jsx", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_constants_index_js", "label": "index.js", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "index.js", "community": 20, "community_name": "Community 20", "source_file": "/home/viny/SoloS/src/constants/index.js", "file_type": "code", "degree": 1}, {"id": "index_ensureheadertoaststyles", "label": "ensureHeaderToastStyles()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "ensureHeaderToastStyles()", "community": 20, "community_name": "Community 20", "source_file": "/home/viny/SoloS/src/constants/index.js", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_utils_dateutils_js", "label": "dateUtils.js", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 40.0, "font": {"size": 12, "color": "#ffffff"}, "title": "dateUtils.js", "community": 2, "community_name": "Community 2", "source_file": "/home/viny/SoloS/src/utils/dateUtils.js", "file_type": "code", "degree": 5}, {"id": "dateutils_generatedatekey", "label": "generateDateKey()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 28.0, "font": {"size": 12, "color": "#ffffff"}, "title": "generateDateKey()", "community": 0, "community_name": "Community 0", "source_file": "/home/viny/SoloS/src/utils/dateUtils.js", "file_type": "code", "degree": 3}, {"id": "dateutils_getdaysinmonth", "label": "getDaysInMonth()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "getDaysInMonth()", "community": 2, "community_name": "Community 2", "source_file": "/home/viny/SoloS/src/utils/dateUtils.js", "file_type": "code", "degree": 1}, {"id": "dateutils_getfirstdayofmonth", "label": "getFirstDayOfMonth()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "getFirstDayOfMonth()", "community": 2, "community_name": "Community 2", "source_file": "/home/viny/SoloS/src/utils/dateUtils.js", "file_type": "code", "degree": 1}, {"id": "dateutils_getstartofcurrentweek", "label": "getStartOfCurrentWeek()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "getStartOfCurrentWeek()", "community": 2, "community_name": "Community 2", "source_file": "/home/viny/SoloS/src/utils/dateUtils.js", "file_type": "code", "degree": 1}, {"id": "dateutils_getstartofweek", "label": "getStartOfWeek()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "getStartOfWeek()", "community": 2, "community_name": "Community 2", "source_file": "/home/viny/SoloS/src/utils/dateUtils.js", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_src_hooks_useauth_js", "label": "useAuth.js", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "useAuth.js", "community": 3, "community_name": "Community 3", "source_file": "/home/viny/SoloS/src/hooks/useAuth.js", "file_type": "code", "degree": 1}, {"id": "useauth_useauth", "label": "useAuth()", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "useAuth()", "community": 3, "community_name": "Community 3", "source_file": "/home/viny/SoloS/src/hooks/useAuth.js", "file_type": "code", "degree": 2}, {"id": "home_viny_solos_src_hooks_usedaydata_js", "label": "useDayData.js", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "useDayData.js", "community": 0, "community_name": "Community 0", "source_file": "/home/viny/SoloS/src/hooks/useDayData.js", "file_type": "code", "degree": 1}, {"id": "usedaydata_usedaydata", "label": "useDayData()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 28.0, "font": {"size": 12, "color": "#ffffff"}, "title": "useDayData()", "community": 0, "community_name": "Community 0", "source_file": "/home/viny/SoloS/src/hooks/useDayData.js", "file_type": "code", "degree": 3}, {"id": "home_viny_solos_utils_diagnostics_js", "label": "diagnostics.js", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "diagnostics.js", "community": 21, "community_name": "Community 21", "source_file": "/home/viny/SoloS/utils/diagnostics.js", "file_type": "code", "degree": 1}, {"id": "diagnostics_runpaymentdiagnostics", "label": "runPaymentDiagnostics()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "runPaymentDiagnostics()", "community": 21, "community_name": "Community 21", "source_file": "/home/viny/SoloS/utils/diagnostics.js", "file_type": "code", "degree": 1}, {"id": "home_viny_solos_utils_payment_js", "label": "payment.js", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "payment.js", "community": 5, "community_name": "Community 5", "source_file": "/home/viny/SoloS/utils/payment.js", "file_type": "code", "degree": 2}, {"id": "payment_loadrazorpayscript", "label": "loadRazorpayScript()", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "loadRazorpayScript()", "community": 5, "community_name": "Community 5", "source_file": "/home/viny/SoloS/utils/payment.js", "file_type": "code", "degree": 2}, {"id": "payment_handlerazorpaypayment", "label": "handleRazorpayPayment()", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "handleRazorpayPayment()", "community": 5, "community_name": "Community 5", "source_file": "/home/viny/SoloS/utils/payment.js", "file_type": "code", "degree": 2}];
+const RAW_EDGES = [{"from": "home_viny_solos_api_create_order_js", "to": "create_order_handler", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_api_verify_payment_js", "to": "verify_payment_handler", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_api_capture_paypal_order_js", "to": "capture_paypal_order_handler", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_api_create_paypal_order_js", "to": "create_paypal_order_handler", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_app_jsx", "to": "app_solos", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "app_solos", "to": "useauth_useauth", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "app_solos", "to": "usedaydata_usedaydata", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "home_viny_solos_src_components_auth_loginpage_jsx", "to": "loginpage_loginpage", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_modals_pricingmodal_jsx", "to": "pricingmodal_pricingmodal", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_daily_textwidget_jsx", "to": "textwidget_textwidget", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_daily_timelinewidget_jsx", "to": "timelinewidget_timelinewidget", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_daily_top3widget_jsx", "to": "top3widget_top3widget", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_daily_routinewidget_jsx", "to": "routinewidget_routinewidget", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_daily_expensewidget_jsx", "to": "expensewidget_getrandomcolor", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_daily_expensewidget_jsx", "to": "expensewidget_expensewidget", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "expensewidget_expensewidget", "to": "dateutils_generatedatekey", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "home_viny_solos_src_components_brain_secondbrainpanel_jsx", "to": "secondbrainpanel_secondbrainpanel", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_brain_areafilterbar_jsx", "to": "areafilterbar_areafilterbar", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_brain_areafilterbar_jsx", "to": "areafilterbar_areapill", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_brain_doceditor_jsx", "to": "doceditor_doceditor", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_layout_header_jsx", "to": "header_header", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_shared_collapsiblesection_jsx", "to": "collapsiblesection_collapsiblesection", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_components_shared_errorboundary_jsx", "to": "errorboundary_errorboundary", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "errorboundary_errorboundary", "to": "errorboundary_errorboundary_constructor", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "errorboundary_errorboundary", "to": "errorboundary_errorboundary_getderivedstatefromerror", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "errorboundary_errorboundary", "to": "errorboundary_errorboundary_componentdidcatch", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "errorboundary_errorboundary", "to": "errorboundary_errorboundary_render", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_constants_index_js", "to": "index_ensureheadertoaststyles", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_utils_dateutils_js", "to": "dateutils_generatedatekey", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_utils_dateutils_js", "to": "dateutils_getdaysinmonth", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_utils_dateutils_js", "to": "dateutils_getfirstdayofmonth", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_utils_dateutils_js", "to": "dateutils_getstartofcurrentweek", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_utils_dateutils_js", "to": "dateutils_getstartofweek", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "dateutils_generatedatekey", "to": "usedaydata_usedaydata", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "home_viny_solos_src_hooks_useauth_js", "to": "useauth_useauth", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_src_hooks_usedaydata_js", "to": "usedaydata_usedaydata", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_utils_diagnostics_js", "to": "diagnostics_runpaymentdiagnostics", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_utils_payment_js", "to": "payment_loadrazorpayscript", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "home_viny_solos_utils_payment_js", "to": "payment_handlerazorpaypayment", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "payment_loadrazorpayscript", "to": "payment_handlerazorpaypayment", "label": "calls", "title": "calls [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}];
+const LEGEND = [{"cid": 0, "color": "#4E79A7", "label": "Community 0", "count": 6}, {"cid": 1, "color": "#F28E2B", "label": "Community 1", "count": 6}, {"cid": 2, "color": "#E15759", "label": "Community 2", "count": 5}, {"cid": 3, "color": "#76B7B2", "label": "Community 3", "count": 4}, {"cid": 4, "color": "#59A14F", "label": "Community 4", "count": 3}, {"cid": 5, "color": "#EDC948", "label": "Community 5", "count": 3}, {"cid": 6, "color": "#B07AA1", "label": "Community 6", "count": 2}, {"cid": 7, "color": "#FF9DA7", "label": "Community 7", "count": 2}, {"cid": 8, "color": "#9C755F", "label": "Community 8", "count": 2}, {"cid": 9, "color": "#BAB0AC", "label": "Community 9", "count": 2}, {"cid": 10, "color": "#4E79A7", "label": "Community 10", "count": 2}, {"cid": 11, "color": "#F28E2B", "label": "Community 11", "count": 2}, {"cid": 12, "color": "#E15759", "label": "Community 12", "count": 2}, {"cid": 13, "color": "#76B7B2", "label": "Community 13", "count": 2}, {"cid": 14, "color": "#59A14F", "label": "Community 14", "count": 2}, {"cid": 15, "color": "#EDC948", "label": "Community 15", "count": 2}, {"cid": 16, "color": "#B07AA1", "label": "Community 16", "count": 2}, {"cid": 17, "color": "#FF9DA7", "label": "Community 17", "count": 2}, {"cid": 18, "color": "#9C755F", "label": "Community 18", "count": 2}, {"cid": 19, "color": "#BAB0AC", "label": "Community 19", "count": 2}, {"cid": 20, "color": "#4E79A7", "label": "Community 20", "count": 2}, {"cid": 21, "color": "#F28E2B", "label": "Community 21", "count": 2}, {"cid": 22, "color": "#E15759", "label": "Community 22", "count": 1}, {"cid": 23, "color": "#76B7B2", "label": "Community 23", "count": 1}, {"cid": 24, "color": "#59A14F", "label": "Community 24", "count": 1}, {"cid": 25, "color": "#EDC948", "label": "Community 25", "count": 1}, {"cid": 26, "color": "#B07AA1", "label": "Community 26", "count": 1}, {"cid": 27, "color": "#FF9DA7", "label": "Community 27", "count": 1}, {"cid": 28, "color": "#9C755F", "label": "Community 28", "count": 1}, {"cid": 29, "color": "#BAB0AC", "label": "Community 29", "count": 1}];
+
+// HTML-escape helper — prevents XSS when injecting graph data into innerHTML
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Build vis datasets
+const nodesDS = new vis.DataSet(RAW_NODES.map(n => ({
+  id: n.id, label: n.label, color: n.color, size: n.size,
+  font: n.font, title: n.title,
+  _community: n.community, _community_name: n.community_name,
+  _source_file: n.source_file, _file_type: n.file_type, _degree: n.degree,
+})));
+
+const edgesDS = new vis.DataSet(RAW_EDGES.map((e, i) => ({
+  id: i, from: e.from, to: e.to,
+  label: '',
+  title: e.title,
+  dashes: e.dashes,
+  width: e.width,
+  color: e.color,
+  arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+})));
+
+const container = document.getElementById('graph');
+const network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, {
+  physics: {
+    enabled: true,
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: {
+      gravitationalConstant: -60,
+      centralGravity: 0.005,
+      springLength: 120,
+      springConstant: 0.08,
+      damping: 0.4,
+      avoidOverlap: 0.8,
+    },
+    stabilization: { iterations: 200, fit: true },
+  },
+  interaction: {
+    hover: true,
+    tooltipDelay: 100,
+    hideEdgesOnDrag: true,
+    navigationButtons: false,
+    keyboard: false,
+  },
+  nodes: { shape: 'dot', borderWidth: 1.5 },
+  edges: { smooth: { type: 'continuous', roundness: 0.2 }, selectionWidth: 3 },
+});
+
+network.once('stabilizationIterationsDone', () => {
+  network.setOptions({ physics: { enabled: false } });
+});
+
+function showInfo(nodeId) {
+  const n = nodesDS.get(nodeId);
+  if (!n) return;
+  const neighborIds = network.getConnectedNodes(nodeId);
+  const neighborItems = neighborIds.map(nid => {
+    const nb = nodesDS.get(nid);
+    const color = nb ? nb.color.background : '#555';
+    return `<span class="neighbor-link" style="border-left-color:${esc(color)}" onclick="focusNode(${JSON.stringify(nid)})">${esc(nb ? nb.label : nid)}</span>`;
+  }).join('');
+  document.getElementById('info-content').innerHTML = `
+    <div class="field"><b>${esc(n.label)}</b></div>
+    <div class="field">Type: ${esc(n._file_type || 'unknown')}</div>
+    <div class="field">Community: ${esc(n._community_name)}</div>
+    <div class="field">Source: ${esc(n._source_file || '-')}</div>
+    <div class="field">Degree: ${n._degree}</div>
+    ${neighborIds.length ? `<div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Neighbors (${neighborIds.length})</div><div id="neighbors-list">${neighborItems}</div>` : ''}
+  `;
+}
+
+function focusNode(nodeId) {
+  network.focus(nodeId, { scale: 1.4, animation: true });
+  network.selectNodes([nodeId]);
+  showInfo(nodeId);
+}
+
+// Track hovered node — hover detection is more reliable than click params
+let hoveredNodeId = null;
+network.on('hoverNode', params => {
+  hoveredNodeId = params.node;
+  container.style.cursor = 'pointer';
+});
+network.on('blurNode', () => {
+  hoveredNodeId = null;
+  container.style.cursor = 'default';
+});
+container.addEventListener('click', () => {
+  if (hoveredNodeId !== null) {
+    showInfo(hoveredNodeId);
+    network.selectNodes([hoveredNodeId]);
+  }
+});
+network.on('click', params => {
+  if (params.nodes.length > 0) {
+    showInfo(params.nodes[0]);
+  } else if (hoveredNodeId === null) {
+    document.getElementById('info-content').innerHTML = '<span class="empty">Click a node to inspect it</span>';
+  }
+});
+
+const searchInput = document.getElementById('search');
+const searchResults = document.getElementById('search-results');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.toLowerCase().trim();
+  searchResults.innerHTML = '';
+  if (!q) { searchResults.style.display = 'none'; return; }
+  const matches = RAW_NODES.filter(n => n.label.toLowerCase().includes(q)).slice(0, 20);
+  if (!matches.length) { searchResults.style.display = 'none'; return; }
+  searchResults.style.display = 'block';
+  matches.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'search-item';
+    el.textContent = n.label;
+    el.style.borderLeft = `3px solid ${n.color.background}`;
+    el.style.paddingLeft = '8px';
+    el.onclick = () => {
+      network.focus(n.id, { scale: 1.5, animation: true });
+      network.selectNodes([n.id]);
+      showInfo(n.id);
+      searchResults.style.display = 'none';
+      searchInput.value = '';
+    };
+    searchResults.appendChild(el);
+  });
+});
+document.addEventListener('click', e => {
+  if (!searchResults.contains(e.target) && e.target !== searchInput)
+    searchResults.style.display = 'none';
+});
+
+const hiddenCommunities = new Set();
+const legendEl = document.getElementById('legend');
+LEGEND.forEach(c => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<div class="legend-dot" style="background:${c.color}"></div>
+    <span class="legend-label">${c.label}</span>
+    <span class="legend-count">${c.count}</span>`;
+  item.onclick = () => {
+    if (hiddenCommunities.has(c.cid)) {
+      hiddenCommunities.delete(c.cid);
+      item.classList.remove('dimmed');
+    } else {
+      hiddenCommunities.add(c.cid);
+      item.classList.add('dimmed');
+    }
+    const updates = RAW_NODES
+      .filter(n => n.community === c.cid)
+      .map(n => ({ id: n.id, hidden: hiddenCommunities.has(c.cid) }));
+    nodesDS.update(updates);
+  };
+  legendEl.appendChild(item);
+});
+</script>
+<script>
+// Render hyperedges as shaded regions
+const hyperedges = [];
+// afterDrawing passes ctx already transformed to network coordinate space.
+// Draw node positions raw — no manual pan/zoom/DPR math needed.
+network.on('afterDrawing', function(ctx) {
+    hyperedges.forEach(h => {
+        const positions = h.nodes
+            .map(nid => network.getPositions([nid])[nid])
+            .filter(p => p !== undefined);
+        if (positions.length < 2) return;
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.fillStyle = '#6366f1';
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Centroid and expanded hull in network coordinates
+        const cx = positions.reduce((s, p) => s + p.x, 0) / positions.length;
+        const cy = positions.reduce((s, p) => s + p.y, 0) / positions.length;
+        const expanded = positions.map(p => ({
+            x: cx + (p.x - cx) * 1.15,
+            y: cy + (p.y - cy) * 1.15
+        }));
+        ctx.moveTo(expanded[0].x, expanded[0].y);
+        expanded.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.4;
+        ctx.stroke();
+        // Label
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = '#4f46e5';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(h.label, cx, cy - 5);
+        ctx.restore();
+    });
+});
+</script>
+</body>
+</html>
