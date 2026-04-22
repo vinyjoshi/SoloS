@@ -19,12 +19,13 @@ import Top3Widget from './components/daily/Top3Widget';
 import RoutineWidget from './components/daily/RoutineWidget';
 import ExpenseWidget from './components/daily/ExpenseWidget';
 import TextWidget from './components/daily/TextWidget';
-import SecondBrainPanel from './components/brain/SecondBrainPanel';
+import PaymentSuccess from './components/payment/PaymentSuccess';
 
 export default function SoloS() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(80);
   const headerRef = useRef(null);
 
@@ -123,6 +124,10 @@ export default function SoloS() {
         </div>
       )}
 
+      {showPaymentSuccess && (
+        <PaymentSuccess onClose={() => setShowPaymentSuccess(false)} />
+      )}
+
       {/* Pricing Modal */}
       {showPricing && (
         <PricingModal
@@ -130,6 +135,10 @@ export default function SoloS() {
           headerOffset={headerHeight}
           user={user}
           setUserTier={setUserTier}
+          onPaymentSuccess={() => {
+            setShowPricing(false);
+            setShowPaymentSuccess(true);
+          }}
         />
       )}
 
