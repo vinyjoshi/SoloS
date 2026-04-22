@@ -70,16 +70,12 @@ export const handleRazorpayPayment = async (user, amount, description, onSuccess
             throw new Error(verifyData.error || 'Payment verification failed');
           }
 
-          // Step 4: Return verified payment data
-          onSuccess({
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature,
-          });
+          // Step 4: Success callback
+          onSuccess();
           resolve(verifyData);
         } catch (error) {
           console.error('Payment verification failed:', error);
-          alert('Payment was received but verification failed. Please contact support with your payment ID: ' + response.razorpay_payment_id);
+          alert('Payment was received but verification failed. Please contact support.');
           reject(error);
         }
       },
